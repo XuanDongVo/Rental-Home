@@ -123,11 +123,9 @@ pipeline {
     post {
         success {
       echo 'Pipeline completed successfully'
-      slackSend(channel: env.SLACK_CHANNEL, message: "Build ${env.BUILD_NUMBER} succeeded! Commit: ${env.GIT_COMMIT_HASH}")
         }
         failure {
       echo 'Pipeline failed'
-      slackSend(channel: env.SLACK_CHANNEL, message: "Build ${env.BUILD_NUMBER} failed! Commit: ${env.GIT_COMMIT_HASH}")
         }
     }
 }
