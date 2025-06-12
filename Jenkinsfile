@@ -67,7 +67,7 @@ void cleanupDockerImages(String dockerImage) {
 
 // Pipeline chính
 pipeline {
-  agent none
+  agent any
 
     environment {
         DOCKER_IMAGE = 'xundon/xuandong-rental-home'
@@ -77,13 +77,6 @@ pipeline {
         SLACK_CHANNEL = '#ci-cd'
     }
 
-  agent  {
-    docker {
-        image 'node:20-alpine'
-        args '-v $HOME/.npm:/root/.npm -v /var/run/docker.sock:/var/run/docker.sock'
-    }
-  }
-
     stages {
         stage('Checkout') {
       steps {
@@ -91,12 +84,16 @@ pipeline {
       }
         }
 
-        stage('Install & Build') {
+    stage('Install & Build') {
       steps {
-        installAndBuildFrontend(env.FE_DIR)
-        installBackend(env.BE_DIR)
-      }
+        script {
+          docker.image('node:20-alpine').inside('-v $HOME/.npm:/root/.npm -v /var/run/docker.sock:/var/run/docker.sock --user root') {
+            installAndBuildFrontend(env.FE_DIR)
+            installBackend(env.BE_DIR)
+          }
         }
+      }
+    }
 
         stage('Run Backend Tests') {
       steps {
