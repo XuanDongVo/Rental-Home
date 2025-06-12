@@ -1,5 +1,74 @@
+
+// Định nghĩa các phương thức
+void checkoutCode() {
+  echo 'Checking out source code'
+  checkout scm
+  env.GIT_COMMIT_HASH = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
+  echo "Commit Hash: ${env.GIT_COMMIT_HASH}"
+}
+
+void installAndBuildFrontend(String feDir) {
+  dir(feDir) {
+        echo 'Installing frontend dependencies'
+        sh 'npm ci --cache .npm --prefer-offline'
+        echo 'Building frontend'
+        sh 'npm run build'
+  }
+}
+
+void installBackend(String beDir) {
+  dir(beDir) {
+        echo 'Installing backend dependencies'
+        sh 'npm ci --cache .npm --prefer-offline'
+  }
+}
+
+void runBackendTests(String beDir) {
+  dir(beDir) {
+        echo 'Running backend tests'
+        catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
+      sh 'npm test'
+        }
+  }
+}
+
+String createDockerImages(String dockerImage, String feDir, String beDir, String commitHash) {
+  parallel(
+        'Build Frontend Image': {
+            dir(feDir) {
+                sh "docker build -t ${dockerImage}:fe-${commitHash} --cache-from ${dockerImage}:fe-latest ."
+            }
+        },
+        'Build Backend Image': {
+            dir(beDir) {
+                sh "docker build -t ${dockerImage}:be-${commitHash} --cache-from ${dockerImage}:be-latest ."
+            }
+        }
+    )
+  sh 'docker image ls'
+  return "${dockerImage}:${commitHash}"
+}
+
+void pushDockerImages(String dockerImage, String commitHash) {
+  withDockerRegistry(credentialsId: 'docker-hub', url: 'https://index.docker.io/v1/') {
+        sh "docker push ${dockerImage}:fe-${commitHash}"
+        sh "docker push ${dockerImage}:be-${commitHash}"
+  }
+}
+
+void cleanupDockerImages(String dockerImage) {
+  echo 'Cleaning up old Docker images'
+  String cleanupCommand = """
+        docker images ${dockerImage} -q | sort -u | xargs -I {} docker rmi {} || true
+        docker image prune -f
+    """
+  sh cleanupCommand
+}
+
+// Pipeline chính
 pipeline {
     agent {
+        // label 'docker-node'
         docker {
       image 'node:20-alpine'
       args '-v $HOME/.npm:/root/.npm'
@@ -11,73 +80,44 @@ pipeline {
         FE_DIR = 'client'
         BE_DIR = 'server'
         GIT_COMMIT_HASH = ''
+        SLACK_CHANNEL = '#ci-cd'
     }
 
     stages {
         stage('Checkout') {
       steps {
-        echo 'Checking out source code'
-        checkout scm
-        script {
-          env.GIT_COMMIT_HASH = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
-          echo "Commit Hash: ${env.GIT_COMMIT_HASH}"
-        }
+        checkoutCode()
       }
         }
 
         stage('Install & Build') {
       steps {
-        dir("${FE_DIR}") {
-          echo 'Installing frontend dependencies'
-          sh 'npm ci --cache .npm --prefer-offline'
+        installAndBuildFrontend(env.FE_DIR)
+        installBackend(env.BE_DIR)
+      }
+        }
 
-          echo 'Building frontend'
-          sh 'npm run build'
-        }
-        dir("${BE_DIR}") {
-          echo 'Installing backend dependencies'
-          sh 'npm ci --cache .npm --prefer-offline'
-        }
+        stage('Run Backend Tests') {
+      steps {
+        runBackendTests(env.BE_DIR)
       }
         }
 
         stage('Build Docker Images') {
       steps {
-        parallel(
-                    'Build Frontend Image': {
-                        dir("${FE_DIR}") {
-                            sh "docker build -t ${DOCKER_IMAGE}:fe-${env.GIT_COMMIT_HASH} --cache-from ${DOCKER_IMAGE}:fe-latest ."
-                        }
-                    },
-                    'Build Backend Image': {
-                        dir("${BE_DIR}") {
-                            sh "docker build -t ${DOCKER_IMAGE}:be-${env.GIT_COMMIT_HASH} --cache-from ${DOCKER_IMAGE}:be-latest ."
-                        }
-                    }
-                )
-        sh 'docker image ls'
+        createDockerImages(env.DOCKER_IMAGE, env.FE_DIR, env.BE_DIR, env.GIT_COMMIT_HASH)
       }
         }
 
         stage('Push Docker Images') {
       steps {
-        withCredentials([usernamePassword(credentialsId: 'docker-hub', usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
-          sh '''
-                        echo $DOCKER_PASSWORD | docker login --username $DOCKER_USERNAME --password-stdin
-                        docker push ${DOCKER_IMAGE}:fe-${GIT_COMMIT_HASH}
-                        docker push ${DOCKER_IMAGE}:be-${GIT_COMMIT_HASH}
-                    '''
-        }
+        pushDockerImages(env.DOCKER_IMAGE, env.GIT_COMMIT_HASH)
       }
         }
 
         stage('Cleanup') {
       steps {
-        echo 'Cleaning up old Docker images'
-        sh """
-                    docker images ${DOCKER_IMAGE} -q | sort -u | xargs -r docker rmi || true
-                    docker image prune -f
-                """
+        cleanupDockerImages(env.DOCKER_IMAGE)
       }
         }
     }
@@ -85,11 +125,11 @@ pipeline {
     post {
         success {
       echo 'Pipeline completed successfully'
-      slackSend(channel: '#ci-cd', message: " Build ${env.BUILD_NUMBER} succeeded! Commit: ${env.GIT_COMMIT_HASH}")
+      slackSend(channel: env.SLACK_CHANNEL, message: "Build ${env.BUILD_NUMBER} succeeded! Commit: ${env.GIT_COMMIT_HASH}")
         }
         failure {
       echo 'Pipeline failed'
-      slackSend(channel: '#ci-cd', message: " Build ${env.BUILD_NUMBER} failed! Commit: ${env.GIT_COMMIT_HASH}")
+      slackSend(channel: env.SLACK_CHANNEL, message: "Build ${env.BUILD_NUMBER} failed! Commit: ${env.GIT_COMMIT_HASH}")
         }
     }
 }
