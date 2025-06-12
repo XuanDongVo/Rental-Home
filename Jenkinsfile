@@ -68,11 +68,11 @@ void cleanupDockerImages(String dockerImage) {
 // Pipeline chính
 pipeline {
     agent {
-        // label 'docker-node'
-        docker {
-      image 'node:20-alpine'
-      args '-v $HOME/.npm:/root/.npm'
-        }
+    docker {
+        label 'docker-node'
+        image 'node:20-alpine'
+        args '-v $HOME/.npm:/root/.npm -v /var/run/docker.sock:/var/run/docker.sock'
+      }
     }
 
     environment {
