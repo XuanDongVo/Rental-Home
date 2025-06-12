@@ -16,6 +16,16 @@ pipeline {
       }
     }
 
+   stage('Version') {
+    steps {
+        script {
+            def version = sh(script: 'docker --version', returnStdout: true).trim()
+            echo "Version: ${version}"
+        }
+    }
+}
+
+
 //     stage('Install & Build Frontend (Next.js)') {
 //       steps {
 //         dir("${FE_DIR}") {
