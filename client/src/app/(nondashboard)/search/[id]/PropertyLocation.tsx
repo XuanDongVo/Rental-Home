@@ -1,3 +1,4 @@
+import Loading from "@/components/Loading";
 import { useGetPropertyQuery } from "@/state/api";
 import { Compass, MapPin } from "lucide-react";
 import mapboxgl from "mapbox-gl";
@@ -19,7 +20,7 @@ const PropertyLocation = ({ propertyId }: PropertyDetailsProps) => {
 
     const map = new mapboxgl.Map({
       container: mapContainerRef.current!,
-      style: "mapbox://styles/majesticglue/cm6u301pq008b01sl7yk1cnvb",
+      style: "mapbox://styles/xuandong14/cmbekrdgx004e01sm59z1b62f",
       center: [
         property.location.coordinates.longitude,
         property.location.coordinates.latitude,
@@ -41,7 +42,7 @@ const PropertyLocation = ({ propertyId }: PropertyDetailsProps) => {
     return () => map.remove();
   }, [property, isError, isLoading]);
 
-  if (isLoading) return <>Loading...</>;
+  if (isLoading) return <Loading />;
   if (isError || !property) {
     return <>Property not Found</>;
   }

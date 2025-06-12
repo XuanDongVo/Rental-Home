@@ -123,6 +123,23 @@ export const api = createApi({
       },
     }),
 
+    deleteProperty: build.mutation<void, number>({
+      query: (id) => ({
+        url: `properties/${id}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: (result, error, id) => [
+        { type: "Properties", id: "LIST" },
+        { type: "Managers", id: "LIST" },
+      ],
+      async onQueryStarted(_, { queryFulfilled }) {
+        await withToast(queryFulfilled, {
+          success: "Property deleted successfully!",
+          error: "Failed to delete property.",
+        });
+      },
+    }),
+
     // tenant related endpoints
     getTenant: build.query<Tenant, string>({
       query: (cognitoId) => `tenants/${cognitoId}`,
@@ -357,6 +374,7 @@ export const {
   useUpdateManagerSettingsMutation,
   useGetPropertiesQuery,
   useGetPropertyQuery,
+  useDeletePropertyMutation,
   useGetCurrentResidencesQuery,
   useGetManagerPropertiesQuery,
   useCreatePropertyMutation,

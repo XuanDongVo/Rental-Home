@@ -135,6 +135,20 @@ declare global {
     userInfo: Tenant | Manager;
     userRole: JsonObject | JsonPrimitive | JsonArray;
   }
+
+  interface CustomDialogProps {
+    open: boolean;
+    onClose: () => void;
+    title?: string;
+    description?: string;
+    content?: React.ReactNode;
+    onConfirm?: () => void;
+    onCancel?: () => void;
+    confirmLabel?: string;
+    cancelLabel?: string;
+    showFooter?: boolean;
+    loading?: boolean;
+  }
 }
 
 export {};

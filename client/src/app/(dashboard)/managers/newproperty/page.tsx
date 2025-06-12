@@ -7,9 +7,10 @@ import { PropertyFormData, propertySchema } from "@/lib/schemas";
 import { useCreatePropertyMutation, useGetAuthUserQuery } from "@/state/api";
 import { AmenityEnum, HighlightEnum, PropertyTypeEnum } from "@/lib/constants";
 import { zodResolver } from "@hookform/resolvers/zod";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
+import axios from "axios";
 
 const NewProperty = () => {
   const [createProperty] = useCreatePropertyMutation();
@@ -62,6 +63,74 @@ const NewProperty = () => {
 
     await createProperty(formData);
   };
+
+
+  const [countries, setCountries] = useState([]);
+  const [states, setStates] = useState([]);
+  const [cities, setCities] = useState([]);
+
+  const [selectedCountry, setSelectedCountry] = useState("");
+  const [selectedState, setSelectedState] = useState("");
+  const [selectedCity, setSelectedCity] = useState("");
+
+  useEffect(() => {
+    axios
+      .get("https://countriesnow.space/api/v0.1/countries/positions")
+      .then((res) => {
+        const countryList = res.data.data.map((item: { name: string }) => item.name as string);
+        setCountries(countryList);
+      });
+  }, []);
+
+  const handleCountryChange = (e: any) => {
+    const country = e.target.value;
+    setSelectedCountry(country);
+    form.setValue("country", country);
+
+    setSelectedState("");
+    setSelectedCity("");
+    form.setValue("state", "");
+    form.setValue("city", "");
+
+    setStates([]);
+    setCities([]);
+
+    if (country) {
+      axios
+        .post("https://countriesnow.space/api/v0.1/countries/states", { country })
+        .then((res) => {
+          const stateList = res.data.data.states.map((item: { name: string }) => item.name);
+          setStates(stateList);
+        });
+    }
+  };
+
+  const handleStateChange = (e: any) => {
+    const state = e.target.value;
+    setSelectedState(state);
+    form.setValue("state", state);
+    setSelectedCity("");
+    form.setValue("city", "");
+    setCities([]);
+
+    if (state) {
+      axios
+        .post("https://countriesnow.space/api/v0.1/countries/state/cities", {
+          country: selectedCountry,
+          state,
+        })
+        .then((res) => {
+          setCities(res.data.data);
+        });
+    }
+  };
+
+  const handleCityChange = (e: any) => {
+    const city = e.target.value;
+    setSelectedCity(city);
+    form.setValue("city", city);
+  };
+
 
   return (
     <div className="dashboard-container">
@@ -205,24 +274,60 @@ const NewProperty = () => {
 
             {/* Additional Information */}
             <div className="space-y-6">
-              <h2 className="text-lg font-semibold mb-4">
-                Additional Information
-              </h2>
-              <CustomFormField name="address" label="Address" />
-              <div className="flex justify-between gap-4">
-                <CustomFormField name="city" label="City" className="w-full" />
-                <CustomFormField
-                  name="state"
-                  label="State"
-                  className="w-full"
-                />
-                <CustomFormField
-                  name="postalCode"
-                  label="Postal Code"
-                  className="w-full"
-                />
+              <h2 className="text-lg font-semibold mb-4">Additional Information</h2>
+
+
+              {/* Country Select */}
+              <div>
+                <label className="block mb-1">Country</label>
+                <select
+                  value={selectedCountry}
+                  onChange={handleCountryChange}
+                  className="w-full border px-3 py-2 rounded"
+                >
+                  <option value="">Select Country</option>
+                  {countries.map((country) => (
+                    <option key={country} value={country}>{country}</option>
+                  ))}
+                </select>
               </div>
-              <CustomFormField name="country" label="Country" />
+
+              {/* State Select */}
+              <div>
+                <label className="block mb-1">State</label>
+                <select
+                  value={selectedState}
+                  onChange={handleStateChange}
+                  disabled={!selectedCountry}
+                  className="w-full border px-3 py-2 rounded disabled:opacity-50"
+                >
+                  <option value="">{selectedCountry ? "Select State" : "Select Country first"}</option>
+                  {states.map((state) => (
+                    <option key={state} value={state}>{state}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* City Select */}
+              <div>
+                <label className="block mb-1">City</label>
+                <select
+                  value={selectedCity}
+                  onChange={handleCityChange}
+                  disabled={!selectedState}
+                  className="w-full border px-3 py-2 rounded disabled:opacity-50"
+                >
+                  <option value="">{selectedState ? "Select City" : "Select State first"}</option>
+                  {cities.map((city) => (
+                    <option key={city} value={city}>{city}</option>
+                  ))}
+                </select>
+              </div>
+
+              <CustomFormField name="address" label="Address" />
+
+
+              <CustomFormField name="postalCode" label="Postal Code" />
             </div>
 
             <Button

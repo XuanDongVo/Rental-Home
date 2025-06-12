@@ -22,8 +22,7 @@ const HeroSection = () => {
       const response = await fetch(
         `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(
           trimmedQuery
-        )}.json?access_token=${
-          process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN
+        )}.json?access_token=${process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN
         }&fuzzyMatch=true`
       );
       const data = await response.json();
@@ -37,10 +36,10 @@ const HeroSection = () => {
         );
         const params = new URLSearchParams({
           location: trimmedQuery,
-          lat: lat.toString(),
+          lat: lat,
           lng: lng,
         });
-        router.push(`/search?${params.toString()}`);
+        router.push(`/search?${params}`);
       }
     } catch (error) {
       console.error("error search location:", error);

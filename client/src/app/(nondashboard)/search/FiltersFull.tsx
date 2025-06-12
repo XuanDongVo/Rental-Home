@@ -68,8 +68,7 @@ const FiltersFull = () => {
       const response = await fetch(
         `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(
           localFilters.location
-        )}.json?access_token=${
-          process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN
+        )}.json?access_token=${process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN
         }&fuzzyMatch=true`
       );
       const data = await response.json();
@@ -79,7 +78,18 @@ const FiltersFull = () => {
           ...prev,
           coordinates: [lng, lat],
         }));
+
+        const updatedFilters: FiltersState = {
+          ...localFilters,
+          coordinates: [lng, lat],
+        };
+
+        setLocalFilters(updatedFilters);
+        dispatch(setFilters(updatedFilters));
+        updateURL(updatedFilters);
       }
+
+
     } catch (err) {
       console.error("Error search location:", err);
     }
@@ -96,7 +106,7 @@ const FiltersFull = () => {
           <div className="flex items-center">
             <Input
               placeholder="Enter location"
-              value={filters.location}
+              value={localFilters.location}
               onChange={(e) =>
                 setLocalFilters((prev) => ({
                   ...prev,

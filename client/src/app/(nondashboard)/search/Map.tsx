@@ -17,13 +17,15 @@ const Map = () => {
     isError,
   } = useGetPropertiesQuery(filters);
 
+  console.log("Map filters:", properties);
+
   useEffect(() => {
     if (isLoading || isError || !properties) return;
 
     const map = new mapboxgl.Map({
       container: mapContainerRef.current!,
-      style: "mapbox://styles/majesticglue/cm6u301pq008b01sl7yk1cnvb",
-      center: filters.coordinates || [-74.5, 40],
+      style: "mapbox://styles/xuandong14/cmbekrdgx004e01sm59z1b62f",
+      center: filters.coordinates || [74.5, 40],
       zoom: 9,
     });
 
