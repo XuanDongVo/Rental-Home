@@ -87,7 +87,7 @@ pipeline {
     stage('Install & Build') {
       steps {
         script {
-          docker.image('node:20-alpine').inside('-v $HOME/.npm:/root/.npm -v /var/run/docker.sock:/var/run/docker.sock --user root') {
+          docker.image('node:20-alpine').args('-u 0:0 -v /tmp:/root/.cache') {
             installAndBuildFrontend(env.FE_DIR)
             installBackend(env.BE_DIR)
           }
