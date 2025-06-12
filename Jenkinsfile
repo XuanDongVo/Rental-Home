@@ -7,31 +7,6 @@ void checkoutCode() {
   echo "Commit Hash: ${env.GIT_COMMIT_HASH}"
 }
 
-void installAndBuildFrontend(String feDir) {
-  dir(feDir) {
-        echo 'Installing frontend dependencies'
-        sh 'npm ci --cache .npm --prefer-offline'
-        echo 'Building frontend'
-        sh 'npm run build'
-  }
-}
-
-void installBackend(String beDir) {
-  dir(beDir) {
-        echo 'Installing backend dependencies'
-        sh 'npm ci --cache .npm --prefer-offline'
-  }
-}
-
-void runBackendTests(String beDir) {
-  dir(beDir) {
-        echo 'Running backend tests'
-        catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
-      sh 'npm test'
-        }
-  }
-}
-
 String createDockerImages(String dockerImage, String feDir, String beDir, String commitHash) {
   parallel(
         'Build Frontend Image': {
@@ -67,7 +42,7 @@ void cleanupDockerImages(String dockerImage) {
 
 // Pipeline chính
 pipeline {
-  agent any
+  agent none
 
     environment {
         DOCKER_IMAGE = 'xundon/xuandong-rental-home'
@@ -81,23 +56,6 @@ pipeline {
         stage('Checkout') {
       steps {
         checkoutCode()
-      }
-        }
-
-    stage('Install & Build') {
-      steps {
-        script {
-          docker.image('node:20-alpine').args('-u 0:0 -v /tmp:/root/.cache') {
-            installAndBuildFrontend(env.FE_DIR)
-            installBackend(env.BE_DIR)
-          }
-        }
-      }
-    }
-
-        stage('Run Backend Tests') {
-      steps {
-        runBackendTests(env.BE_DIR)
       }
         }
 
