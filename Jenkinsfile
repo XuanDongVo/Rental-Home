@@ -67,12 +67,7 @@ void cleanupDockerImages(String dockerImage) {
 
 // Pipeline chính
 pipeline {
-    agent  {
-    docker {
-        image 'node:20-alpine'
-        args '-v $HOME/.npm:/root/.npm -v /var/run/docker.sock:/var/run/docker.sock'
-      }
-    }
+  agent none
 
     environment {
         DOCKER_IMAGE = 'xundon/xuandong-rental-home'
@@ -81,6 +76,13 @@ pipeline {
         GIT_COMMIT_HASH = ''
         SLACK_CHANNEL = '#ci-cd'
     }
+
+  agent  {
+    docker {
+        image 'node:20-alpine'
+        args '-v $HOME/.npm:/root/.npm -v /var/run/docker.sock:/var/run/docker.sock'
+    }
+  }
 
     stages {
         stage('Checkout') {
