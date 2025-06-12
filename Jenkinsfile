@@ -42,6 +42,7 @@ void cleanupDockerImages(String dockerImage) {
 
 // Pipeline chính
 pipeline {
+  agent any
     environment {
         DOCKER_IMAGE = 'xundon/xuandong-rental-home'
         FE_DIR = 'client'
