@@ -2,10 +2,10 @@ pipeline {
   agent any
 
   environment {
-    FE_IMAGE = 'yourdockerhub/nextjs-fe'
-    BE_IMAGE = 'yourdockerhub/express-be'
+    DOCKER_IMAGE = 'xundon/xuandong-rental-home'
     FE_DIR = 'client'
     BE_DIR = 'server'
+    GIT_COMMIT_HASH = ''
   }
 
   stages {
@@ -13,86 +13,88 @@ pipeline {
       steps {
         echo "Checking out source code"
         checkout scm
+        script {
+          env.GIT_COMMIT_HASH = sh(script: "git rev-parse --short HEAD", returnStdout: true).trim()
+          echo "Commit Hash: ${env.GIT_COMMIT_HASH}"
+        }
       }
     }
 
-   stage('Version') {
-    steps {
+    stage('Version') {
+      steps {
         script {
-            def version = sh(script: 'docker --version', returnStdout: true).trim()
-            echo "Version: ${version}"
+          def version = sh(script: 'docker --version', returnStdout: true).trim()
+          echo "Docker Version: ${version}"
         }
+      }
     }
-}
 
-
-//     stage('Install & Build Frontend (Next.js)') {
-//       steps {
-//         dir("${FE_DIR}") {
-//           echo " Installing frontend dependencies"
-//           sh 'npm install'
+    stage('Install & Build Frontend (Next.js)') {
+      steps {
+        dir("${FE_DIR}") {
+          echo "Installing frontend dependencies"
+          sh 'npm install'
           
-//           echo "Building frontend"
-//           sh 'npm run build'
-//         }
-//       }
-//     }
+          echo "Building frontend"
+          sh 'npm run build'
+        }
+      }
+    }
 
-//     stage('Install & Test Backend (Express.js)') {
-//       steps {
-//         dir("${BE_DIR}") {
-//           echo "Installing backend dependencies"
-//           sh 'npm install'
+    stage('Install & Test Backend (Express.js)') {
+      steps {
+        dir("${BE_DIR}") {
+          echo "Installing backend dependencies"
+          sh 'npm install'
 
-//           echo "Running backend tests"
-//           sh 'npm test || echo "⚠️ Tests failed but continuing..."'
-//         }
-//       }
-//     }
+          echo "Running backend tests"
+          sh 'npm test || echo \"Tests failed but continuing...\"'
+        }
+      }
+    }
 
-//     stage('Build Docker Images') {
-//       steps {
-//         echo "Building Docker images"
+    stage('Build Docker Images') {
+      steps {
+        echo "Building Docker images for FE and BE"
 
-//         dir("${FE_DIR}") {
-//           sh "docker build -t ${FE_IMAGE}:latest ."
-//         }
+        dir("${FE_DIR}") {
+          sh "docker build  -t ${DOCKER_IMAGE}:fe-${env.GIT_COMMIT_HASH} ."
+        }
 
-//         dir("${BE_DIR}") {
-//           sh "docker build -t ${BE_IMAGE}:latest ."
-//         }
+        dir("${BE_DIR}") {
+          sh "docker build -t ${DOCKER_IMAGE}:be-${env.GIT_COMMIT_HASH} ."
+        }
 
-//         sh "docker image ls"
-//       }
-//     }
+        sh "docker image ls"
+      }
+    }
 
-//     stage('Push Docker Images') {
-//       steps {
-//         withCredentials([usernamePassword(credentialsId: 'docker-hub', usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
-//           sh 'echo $DOCKER_PASSWORD | docker login --username $DOCKER_USERNAME --password-stdin'
+    stage('Push Docker Images') {
+      steps {
+        withCredentials([usernamePassword(credentialsId: 'docker-hub', usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
+          sh 'echo $DOCKER_PASSWORD | docker login --username $DOCKER_USERNAME --password-stdin'
 
-//           sh "docker push ${FE_IMAGE}:latest"
-//           sh "docker push ${BE_IMAGE}:latest"
-//         }
-//       }
-//     }
+          sh "docker push ${DOCKER_IMAGE}:fe-${env.GIT_COMMIT_HASH}"
 
-//     stage('Deploy') {
-//       steps {
-//         echo "🚀 Deploying containers (customize this step as needed)"
-//         // Có thể dùng ssh hoặc docker compose để triển khai lên VPS/server
-//         // Ví dụ:
-//         // sh 'ssh user@server "docker pull ..."'
-//       }
-//     }
-//   }
+          sh "docker push ${DOCKER_IMAGE}:be-${env.GIT_COMMIT_HASH}"
+        }
+      }
+    }
 
-//   post {
-//     success {
-//       echo "Pipeline completed successfully"
-//     }
-//     failure {
-//       echo "Pipeline failed"
-//     }
+    stage('Cleanup') {
+      steps {
+        echo "Cleaning up old Docker images"
+        sh 'docker image prune -f'
+      }
+    }
+  }
+
+  post {
+    success {
+      echo " Pipeline completed successfully"
+    }
+    failure {
+      echo " Pipeline failed"
+    }
   }
 }
