@@ -1,12 +1,5 @@
 
 // Định nghĩa các phương thức
-void checkoutCode() {
-  echo 'Checking out source code'
-  checkout scm
-  env.GIT_COMMIT_HASH = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
-  echo "Commit Hash: ${env.GIT_COMMIT_HASH}"
-}
-
 String createDockerImages(String dockerImage, String feDir, String beDir, String commitHash) {
   parallel(
         'Build Frontend Image': {
@@ -54,7 +47,11 @@ pipeline {
     stages {
         stage('Checkout') {
       steps {
-        checkoutCode()
+        script {
+          checkout scm
+          GIT_COMMIT_HASH = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
+          echo "Commit Hash: ${GIT_COMMIT_HASH}"
+        }
       }
         }
 
