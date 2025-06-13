@@ -49,8 +49,12 @@ pipeline {
       steps {
         script {
           checkout scm
-          GIT_COMMIT_HASH = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
-          echo "Commit Hash: ${GIT_COMMIT_HASH}"
+          // Đặt thư mục hiện tại là safe nếu cần
+          sh "git config --global --add safe.directory '${env.WORKSPACE}'"
+
+          // Gán giá trị cho env.GIT_COMMIT_HASH để sử dụng ở các stage sau
+          env.GIT_COMMIT_HASH = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
+          echo "Commit Hash: ${env.GIT_COMMIT_HASH}"
         }
       }
         }
