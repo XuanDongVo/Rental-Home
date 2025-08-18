@@ -30,4 +30,4 @@ USER expressjs
 EXPOSE 3001
 ENV PORT=3001
 
-CMD ["node", "server.js"]
+CMD ["node", "index.js"]
