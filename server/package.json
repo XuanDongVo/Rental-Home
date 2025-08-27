@@ -4,9 +4,9 @@
   "main": "index.js",
   "scripts": {
     "build": "rimraf dist && npx tsc",
-    "start": "npm run build && node dist/index.js",
-    "dev": "npm run build && concurrently \"npx tsc -w\" \"nodemon --exec ts-node src/index.ts\"",
-    "seed": "ts-node prisma/seed.ts",
+    "start": "cross-env NODE_ENV=production npm run build && node dist/src/index.js",
+    "dev": "cross-env NODE_ENV=development npm run build && concurrently \"npx tsc -w\" \"nodemon --exec ts-node src/index.ts\"",
+    "seed": "ts-node-transpile-only prisma/seed.ts",
     "prisma:generate": "prisma generate",
     "postprisma:generate": "shx cp -r node_modules/.prisma/client/index.d.ts ../client/src/types/prismaTypes.d.ts",
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -41,6 +41,7 @@
     "@types/terraformer__wkt": "^2.0.3",
     "@types/uuid": "^10.0.0",
     "concurrently": "^9.1.2",
+    "cross-env": "^10.0.0",
     "nodemon": "^3.1.10",
     "rimraf": "^6.0.1",
     "shx": "^0.4.0",

@@ -30,6 +30,7 @@ import "filepond/dist/filepond.min.css";
 import FilePondPluginImagePreview from "filepond-plugin-image-preview";
 import FilePondPluginImageExifOrientation from "filepond-plugin-image-exif-orientation";
 import "filepond-plugin-image-preview/dist/filepond-plugin-image-preview.css";
+import Image from "next/image";
 
 registerPlugin(FilePondPluginImageExifOrientation, FilePondPluginImagePreview);
 
@@ -37,15 +38,15 @@ interface FormFieldProps {
   name: string;
   label: string;
   type?:
-    | "text"
-    | "email"
-    | "textarea"
-    | "number"
-    | "select"
-    | "switch"
-    | "password"
-    | "file"
-    | "multi-input";
+  | "text"
+  | "email"
+  | "textarea"
+  | "number"
+  | "select"
+  | "switch"
+  | "password"
+  | "file"
+  | "multi-input";
   placeholder?: string;
   options?: { value: string; label: string }[];
   accept?: string;
@@ -57,6 +58,7 @@ interface FormFieldProps {
   multiple?: boolean;
   isIcon?: boolean;
   initialValue?: string | number | boolean | string[];
+  currentPhotos?: string[]; // For displaying existing photos in edit mode
 }
 
 export const CustomFormField: React.FC<FormFieldProps> = ({
@@ -73,6 +75,7 @@ export const CustomFormField: React.FC<FormFieldProps> = ({
   multiple = false,
   isIcon = false,
   initialValue,
+  currentPhotos,
 }) => {
   const { control } = useFormContext();
 
@@ -129,9 +132,18 @@ export const CustomFormField: React.FC<FormFieldProps> = ({
           </div>
         );
       case "file":
+        // Convert currentPhotos URLs to FilePond format
+        const initialFiles = currentPhotos ? currentPhotos.map((url, index) => ({
+          source: url,
+          options: {
+            type: 'local'
+          }
+        })) : [];
+
         return (
           <FilePond
             className={`${inputClassName}`}
+            files={initialFiles}
             onupdatefiles={(fileItems) => {
               const files = fileItems.map((fileItem) => fileItem.file);
               field.onChange(files);
@@ -139,6 +151,15 @@ export const CustomFormField: React.FC<FormFieldProps> = ({
             allowMultiple={true}
             labelIdle={`Drag & Drop your images or <span class="filepond--label-action">Browse</span>`}
             credits={false}
+            server={{
+              load: (source, load, error, progress, abort, headers) => {
+                // Handle loading existing images from URL
+                fetch(source)
+                  .then(response => response.blob())
+                  .then(load)
+                  .catch(error);
+              }
+            }}
           />
         );
       case "number":
@@ -180,9 +201,8 @@ export const CustomFormField: React.FC<FormFieldProps> = ({
       defaultValue={initialValue}
       render={({ field }) => (
         <FormItem
-          className={`${
-            type !== "switch" && "rounded-md"
-          } relative ${className}`}
+          className={`${type !== "switch" && "rounded-md"
+            } relative ${className}`}
         >
           {type !== "switch" && (
             <div className="flex justify-between items-center">

@@ -14,15 +14,27 @@ import "@aws-amplify/ui-react/styles.css";
 import { useRouter, usePathname } from "next/navigation";
 
 // https://docs.amplify.aws/gen1/javascript/tools/libraries/configure-categories/
-Amplify.configure({
-  Auth: {
-    Cognito: {
-      userPoolId: process.env.NEXT_PUBLIC_AWS_COGNITO_USER_POOL_ID!,
-      userPoolClientId:
-        process.env.NEXT_PUBLIC_AWS_COGNITO_USER_POOL_CLIENT_ID!,
+const configureAmplify = () => {
+  const userPoolId = process.env.NEXT_PUBLIC_AWS_COGNITO_USER_POOL_ID;
+  const userPoolClientId = process.env.NEXT_PUBLIC_AWS_COGNITO_USER_POOL_CLIENT_ID;
+
+
+
+  if (!userPoolId || !userPoolClientId) {
+
+    throw new Error('AWS Cognito UserPool not configured. Missing environment variables.');
+  }
+
+
+  Amplify.configure({
+    Auth: {
+      Cognito: {
+        userPoolId: userPoolId,
+        userPoolClientId: userPoolClientId,
+      },
     },
-  },
-});
+  });
+};
 
 const components = {
   Header() {
@@ -147,6 +159,15 @@ const Auth = ({ children }: { children: React.ReactNode }) => {
   const isAuthPage = pathname.match(/^\/(signin|signup)$/);
   const isDashboardPage =
     pathname.startsWith("/manager") || pathname.startsWith("/tenants");
+
+  // Configure Amplify on client-side
+  useEffect(() => {
+    try {
+      configureAmplify();
+    } catch (error) {
+      console.error('Failed to configure Amplify:', error);
+    }
+  }, []);
 
   // Redirect authenticated users away from auth pages
   useEffect(() => {

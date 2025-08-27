@@ -7,9 +7,11 @@ import Loading from "@/components/Loading";
 import { useDeletePropertyMutation, useGetAuthUserQuery, useGetManagerPropertiesQuery } from "@/state/api";
 import { Edit, Trash } from "lucide-react";
 import React, { useState } from "react";
+import { useRouter } from "next/navigation";
 
 
 const Properties = () => {
+  const router = useRouter();
   const { data: authUser } = useGetAuthUserQuery();
   const [openDialog, setOpenDialog] = useState(false);
   const [selectedPropertyId, setSelectedPropertyId] = useState<number | null>(null);
@@ -28,8 +30,8 @@ const Properties = () => {
   if (error) return <div>Error loading manager properties</div>;
 
   const handleEdit = (propertyId: number) => {
-
-  }
+    router.push(`/managers/properties/${propertyId}/edit`);
+  };
 
   const handleDelete = (propertyId: number) => {
     setSelectedPropertyId(propertyId);

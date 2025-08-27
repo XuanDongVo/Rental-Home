@@ -2,34 +2,69 @@ version: "3.9"
 
 services:
   database:
-    image: postgis/postgis:16-3.4
+    image: postgis/postgis:15-3.5-alpine
     container_name: database
     env_file:
-      - .env
+      - ./server/.env
     ports:
       - "5432:5432"
     volumes:
       - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - rental-network
+    restart: unless-stopped
 
-  backend:
-    build: ./backend
-    container_name: backend
+  server:
+    build: 
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: rental-server
     env_file:
-      - .env
+      - ./server/.env.production
+    environment:
+      - NODE_ENV=production
     ports:
       - "3001:3001"
     depends_on:
-      - database
+      database:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:3001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - rental-network
+    restart: unless-stopped
 
-  frontend:
-    build: ./frontend
-    container_name: frontend
+  client:
+    build: 
+      context: ./client
+      dockerfile: Dockerfile
+    container_name: rental-client
     env_file:
-      - .env
+      - ./client/.env.production
+    environment:
+      - NODE_ENV=production
     ports:
       - "3000:3000"
-    depends_on:
-      - backend
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - rental-network
+    restart: unless-stopped
+
+networks:
+  rental-network:
+    driver: bridge
 
 volumes:
   db_data:

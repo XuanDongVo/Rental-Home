@@ -278,6 +278,28 @@ export const api = createApi({
       },
     }),
 
+    updateProperty: build.mutation<
+      Property,
+      { id: number; formData: FormData }
+    >({
+      query: ({ id, formData }) => ({
+        url: `properties/${id}`,
+        method: "PUT",
+        body: formData,
+      }),
+      invalidatesTags: (result, error, { id }) => [
+        { type: "Properties", id: "LIST" },
+        { type: "PropertyDetails", id },
+        { type: "Managers", id: result?.manager?.id },
+      ],
+      async onQueryStarted(_, { queryFulfilled }) {
+        await withToast(queryFulfilled, {
+          success: "Property updated successfully!",
+          error: "Failed to update property.",
+        });
+      },
+    }),
+
     // lease related enpoints
     getLeases: build.query<Lease[], number>({
       query: () => "leases",
@@ -378,6 +400,7 @@ export const {
   useGetCurrentResidencesQuery,
   useGetManagerPropertiesQuery,
   useCreatePropertyMutation,
+  useUpdatePropertyMutation,
   useGetTenantQuery,
   useAddFavoritePropertyMutation,
   useRemoveFavoritePropertyMutation,
