@@ -60,7 +60,7 @@ declare global {
   }
 
   interface PropertyOverviewProps {
-    propertyId: number;
+    property: Property;
   }
 
   interface ApplicationModalProps {
@@ -71,6 +71,7 @@ declare global {
 
   interface ContactWidgetProps {
     onOpenModal: () => void;
+    property: Property;
   }
 
   interface ImagePreviewsProps {
@@ -78,15 +79,16 @@ declare global {
   }
 
   interface PropertyDetailsProps {
-    propertyId: number;
-  }
-
-  interface PropertyOverviewProps {
-    propertyId: number;
+    property: Property;
   }
 
   interface PropertyLocationProps {
-    propertyId: number;
+    property: Property;
+  }
+
+  interface PropertyWithRentalStatus extends Property {
+    isRented: boolean;
+    hasActiveLease: boolean;
   }
 
   interface ApplicationCardProps {

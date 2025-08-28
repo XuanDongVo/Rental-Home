@@ -1,5 +1,3 @@
-import Loading from "@/components/Loading";
-import { useGetPropertyQuery } from "@/state/api";
 import { Compass, MapPin } from "lucide-react";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
@@ -7,16 +5,11 @@ import React, { useEffect, useRef } from "react";
 
 mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN as string;
 
-const PropertyLocation = ({ propertyId }: PropertyDetailsProps) => {
-  const {
-    data: property,
-    isError,
-    isLoading,
-  } = useGetPropertyQuery(propertyId);
+const PropertyLocation = ({ property }: PropertyLocationProps) => {
   const mapContainerRef = useRef(null);
 
   useEffect(() => {
-    if (isLoading || isError || !property) return;
+    if (!property) return;
 
     const map = new mapboxgl.Map({
       container: mapContainerRef.current!,
@@ -40,12 +33,7 @@ const PropertyLocation = ({ propertyId }: PropertyDetailsProps) => {
     if (path) path.setAttribute("fill", "#000000");
 
     return () => map.remove();
-  }, [property, isError, isLoading]);
-
-  if (isLoading) return <Loading />;
-  if (isError || !property) {
-    return <>Property not Found</>;
-  }
+  }, [property]);
 
   return (
     <div className="py-16">

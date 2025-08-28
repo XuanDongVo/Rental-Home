@@ -89,7 +89,7 @@ export const useSSENotifications = () => {
       };
 
       eventSource.onerror = (error) => {
-        console.error("SSE error:", error);
+        // console.error("SSE error:", error);
         setIsConnected(false);
         eventSource.close();
 

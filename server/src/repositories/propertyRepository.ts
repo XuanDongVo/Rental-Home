@@ -33,7 +33,10 @@ export const getProperties = async (whereConditions: Prisma.Sql[]) => {
 export const getPropertyById = async (id: number) => {
   const property = await prisma.property.findUnique({
     where: { id },
-    include: { location: true },
+    include: {
+      location: true,
+      leases: true,
+    },
   });
   return property;
 };

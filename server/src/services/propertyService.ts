@@ -125,12 +125,29 @@ export const getProperty = async (id: number) => {
   const longitude = geoJSON.coordinates[0];
   const latitude = geoJSON.coordinates[1];
 
+  // Check if property is currently rented
+  const currentDate = new Date();
+  const isRented = property.leases.some((lease) => {
+    const startDate = new Date(lease.startDate);
+    const endDate = new Date(lease.endDate);
+    return currentDate >= startDate && currentDate <= endDate;
+  });
+
+  // Check if has active lease (boolean)
+  const hasActiveLease = property.leases.some((lease) => {
+    const startDate = new Date(lease.startDate);
+    const endDate = new Date(lease.endDate);
+    return currentDate >= startDate && currentDate <= endDate;
+  });
+
   return {
     ...property,
     location: {
       ...property.location,
       coordinates: { longitude, latitude },
     },
+    isRented,
+    hasActiveLease,
   };
 };
 

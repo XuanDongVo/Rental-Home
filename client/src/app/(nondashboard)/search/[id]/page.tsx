@@ -1,6 +1,6 @@
 "use client";
 
-import { useGetAuthUserQuery } from "@/state/api";
+import { useGetAuthUserQuery, useGetPropertyQuery } from "@/state/api";
 import { useParams } from "next/navigation";
 import React, { useState } from "react";
 import ImagePreviews from "./ImagePreviews";
@@ -9,12 +9,25 @@ import PropertyDetails from "./PropertyDetails";
 import PropertyLocation from "./PropertyLocation";
 import ContactWidget from "./ContactWidget";
 import ApplicationModal from "./ApplicationModal";
+import Loading from "@/components/Loading";
 
 const SingleListing = () => {
   const { id } = useParams();
   const propertyId = Number(id);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { data: authUser } = useGetAuthUserQuery();
+  const {
+    data: property,
+    isError,
+    isLoading
+  } = useGetPropertyQuery(propertyId);
+
+  console.log(`property: ${JSON.stringify(property)}`);
+
+  if (isLoading) return <Loading />;
+  if (isError || !property) {
+    return <div className="text-center py-10">Property not found</div>;
+  }
 
   return (
     <div>
@@ -23,13 +36,16 @@ const SingleListing = () => {
       />
       <div className="flex flex-col md:flex-row justify-center gap-10 mx-10 md:w-2/3 md:mx-auto mt-16 mb-8">
         <div className="order-2 md:order-1">
-          <PropertyOverview propertyId={propertyId} />
-          <PropertyDetails propertyId={propertyId} />
-          <PropertyLocation propertyId={propertyId} />
+          <PropertyOverview property={property} />
+          <PropertyDetails property={property} />
+          <PropertyLocation property={property} />
         </div>
 
         <div className="order-1 md:order-2">
-          <ContactWidget onOpenModal={() => setIsModalOpen(true)} />
+          <ContactWidget
+            onOpenModal={() => setIsModalOpen(true)}
+            property={property}
+          />
         </div>
       </div>
 
