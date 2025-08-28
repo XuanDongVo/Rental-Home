@@ -35,6 +35,7 @@ export const getPropertyById = async (id: number) => {
     where: { id },
     include: {
       location: true,
+      applications: true,
       leases: true,
     },
   });

@@ -8,7 +8,7 @@ const ContactWidget = ({ onOpenModal, property }: ContactWidgetProps) => {
   const { data: authUser } = useGetAuthUserQuery();
   const router = useRouter();
 
-  const isRented = property?.isRented || property?.hasActiveLease;
+  const isRented = (property?.isRented || property?.hasActiveLease) && property?.hasApprovedApplication;
 
   const handleButtonClick = () => {
     if (isRented) return; // Không làm gì nếu đã được thuê
@@ -26,6 +26,25 @@ const ContactWidget = ({ onOpenModal, property }: ContactWidgetProps) => {
     return "🔑 Sign In to Apply";
   };
 
+  const getStatusMessage = () => {
+    if (property?.hasActiveLease) {
+      return {
+        title: "This property is currently rented",
+        description: "Property has an active lease agreement"
+      };
+    }
+    if (property?.hasApprovedApplication) {
+      return {
+        title: "This property has approved application",
+        description: "Property is reserved and not accepting new applications"
+      };
+    }
+    return {
+      title: "This property is not available",
+      description: "Applications are not available at this time"
+    };
+  };
+
   return (
     <div className={`bg-white border rounded-2xl p-7 h-fit min-w-[300px] relative transition-all duration-300 ${isRented
       ? "border-red-300 shadow-red-100 shadow-lg"
@@ -34,7 +53,7 @@ const ContactWidget = ({ onOpenModal, property }: ContactWidgetProps) => {
       {/* Status Badge */}
       {isRented && (
         <div className="absolute -top-3 -right-3 bg-red-500 text-white px-4 py-2 rounded-full font-bold text-sm shadow-lg border-2 border-white">
-          🏠 RENTED
+          {property?.hasActiveLease ? "🏠 RENTED" : "📋 RESERVED"}
         </div>
       )}
 
@@ -62,10 +81,10 @@ const ContactWidget = ({ onOpenModal, property }: ContactWidgetProps) => {
             </div>
             <div className="ml-3">
               <p className="text-sm font-semibold text-red-800">
-                This property is currently rented
+                {getStatusMessage().title}
               </p>
               <p className="text-xs text-red-600">
-                Applications are not available at this time
+                {getStatusMessage().description}
               </p>
             </div>
           </div>

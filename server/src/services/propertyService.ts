@@ -125,20 +125,23 @@ export const getProperty = async (id: number) => {
   const longitude = geoJSON.coordinates[0];
   const latitude = geoJSON.coordinates[1];
 
-  // Check if property is currently rented
+  // Check if property is currently rented (has active lease)
   const currentDate = new Date();
-  const isRented = property.leases.some((lease) => {
-    const startDate = new Date(lease.startDate);
-    const endDate = new Date(lease.endDate);
-    return currentDate >= startDate && currentDate <= endDate;
-  });
-
-  // Check if has active lease (boolean)
   const hasActiveLease = property.leases.some((lease) => {
     const startDate = new Date(lease.startDate);
     const endDate = new Date(lease.endDate);
     return currentDate >= startDate && currentDate <= endDate;
   });
+
+  // Check if has approved application(s)
+  const hasApprovedApplication = property.applications.some(
+    (application) => application.status === "Approved"
+  );
+
+  // Property is considered "rented/unavailable" if it has either:
+  // 1. An active lease, OR
+  // 2. An approved application (even if lease hasn't started yet)
+  const isRented = hasActiveLease || hasApprovedApplication;
 
   return {
     ...property,
@@ -148,6 +151,7 @@ export const getProperty = async (id: number) => {
     },
     isRented,
     hasActiveLease,
+    hasApprovedApplication,
   };
 };
 

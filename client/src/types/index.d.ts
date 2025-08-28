@@ -89,6 +89,7 @@ declare global {
   interface PropertyWithRentalStatus extends Property {
     isRented: boolean;
     hasActiveLease: boolean;
+    hasApprovedApplication: boolean;
   }
 
   interface ApplicationCardProps {
