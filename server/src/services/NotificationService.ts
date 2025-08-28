@@ -220,8 +220,8 @@ export class NotificationService {
     await this.createNotification({
       type: "ApplicationSubmitted",
       title: "New Application Received",
-      message: `${tenantName} has submitted an application for ${propertyName}`,
-      data: { applicationId, propertyName },
+      message: `New rental application from ${tenantName} for property: ${propertyName}`,
+      data: { applicationId, propertyName, tenantName },
       managerCognitoId,
     });
   }

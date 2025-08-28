@@ -33,15 +33,15 @@ const NotificationItem: React.FC<NotificationItemProps> = ({
             window.location.href = `/managers/properties/${notification.data.propertyId}`;
         } else if (notification.data?.applicationId) {
             // Navigate to applications page
-            window.location.href = `/managers/applications`;
+            window.location.href = `/tenants/applications`;
         }
     };
 
     return (
         <div
             className={`p-3 border-b cursor-pointer hover:bg-gray-50 transition-colors relative ${!notification.isRead
-                    ? "bg-blue-50 border-l-4 border-l-blue-500"
-                    : "bg-white hover:bg-gray-50"
+                ? "bg-blue-50 border-l-4 border-l-blue-500"
+                : "bg-white hover:bg-gray-50"
                 }`}
             onClick={handleClick}
         >
@@ -53,8 +53,8 @@ const NotificationItem: React.FC<NotificationItemProps> = ({
                             }`}></div>
 
                         <h4 className={`text-sm ${!notification.isRead
-                                ? "font-semibold text-gray-900"
-                                : "font-normal text-gray-700"
+                            ? "font-semibold text-gray-900"
+                            : "font-normal text-gray-700"
                             }`}>
                             {notification.title}
                         </h4>
@@ -136,8 +136,8 @@ const NotificationBell: React.FC = () => {
                 </Button>
             </DropdownMenuTrigger>
 
-            <DropdownMenuContent align="end" className="w-96 p-0">
-                <div className="p-4 border-b">
+            <DropdownMenuContent align="end" className=" p-0">
+                <div className="p-4 border-b w-[510px]">
                     <div className="flex items-center justify-between">
                         <h3 className="font-semibold">Notifications</h3>
                         <div className="flex items-center gap-2">
@@ -148,7 +148,7 @@ const NotificationBell: React.FC = () => {
                         </div>
                     </div>
 
-                    <div className="flex items-center justify-between mt-3">
+                    <div className="flex items-center justify-between mt-3 ">
                         <div className="flex items-center gap-3">
                             <span className="text-sm text-gray-600">
                                 {unreadCount} unread • {notifications.length} total

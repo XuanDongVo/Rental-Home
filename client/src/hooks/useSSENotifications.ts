@@ -37,7 +37,6 @@ export const useSSENotifications = () => {
           return;
         }
 
-        console.log("Fetching notifications with auth...");
         const response = await fetch(
           `${process.env.NEXT_PUBLIC_API_BASE_URL}/notifications`,
           {
@@ -47,19 +46,17 @@ export const useSSENotifications = () => {
           }
         );
 
-        console.log("Fetch response status:", response.status);
-
         if (response.ok) {
           const data = await response.json();
           console.log("Fetched notifications:", data);
           setNotifications(data);
           setUnreadCount(data.filter((n: Notification) => !n.isRead).length);
         } else {
-          console.error(
-            "Failed to fetch notifications:",
-            response.status,
-            response.statusText
-          );
+          //   console.error(
+          //     "Failed to fetch notifications:",
+          //     response.status,
+          //     response.statusText
+          //   );
         }
       } catch (error) {
         console.error("Failed to fetch initial notifications:", error);
@@ -174,9 +171,11 @@ export const useSSENotifications = () => {
 
   // Sync unread count with notifications to ensure accuracy
   useEffect(() => {
-    const actualUnreadCount = notifications.filter(n => !n.isRead).length;
+    const actualUnreadCount = notifications.filter((n) => !n.isRead).length;
     if (unreadCount !== actualUnreadCount) {
-      console.log(`🔄 Syncing unread count: ${unreadCount} -> ${actualUnreadCount}`);
+      console.log(
+        `🔄 Syncing unread count: ${unreadCount} -> ${actualUnreadCount}`
+      );
       setUnreadCount(actualUnreadCount);
     }
   }, [notifications, unreadCount]);
@@ -190,7 +189,7 @@ export const useSSENotifications = () => {
         // Get ID token for auth (same as api.ts)
         const session = await fetchAuthSession();
         const { idToken } = session.tokens ?? {};
-        
+
         if (!idToken) {
           console.error("No ID token available for mark as read");
           return;
@@ -236,7 +235,7 @@ export const useSSENotifications = () => {
       // Get ID token for auth (same as api.ts)
       const session = await fetchAuthSession();
       const { idToken } = session.tokens ?? {};
-      
+
       if (!idToken) {
         console.error("No ID token available for mark all as read");
         return;
@@ -255,17 +254,17 @@ export const useSSENotifications = () => {
       if (response.ok) {
         // Update local state - only mark unread notifications as read
         setNotifications((prev) => {
-          const unreadCount = prev.filter(n => !n.isRead).length;
-          
+          const unreadCount = prev.filter((n) => !n.isRead).length;
+
           // Update notifications
           const updatedNotifications = prev.map((notification) => ({
             ...notification,
-            isRead: true
+            isRead: true,
           }));
-          
+
           // Set unread count to 0 since we marked all as read
           setUnreadCount(0);
-          
+
           return updatedNotifications;
         });
       }
@@ -291,7 +290,7 @@ export const useSSENotifications = () => {
       // Get ID token for auth (same as api.ts)
       const session = await fetchAuthSession();
       const { idToken } = session.tokens ?? {};
-      
+
       if (!idToken) {
         console.error("No ID token available for refresh");
         return;
@@ -314,7 +313,9 @@ export const useSSENotifications = () => {
         console.log("Refreshed notifications data:", data);
         setNotifications(data);
         // Recalculate unread count accurately
-        const actualUnreadCount = data.filter((n: Notification) => !n.isRead).length;
+        const actualUnreadCount = data.filter(
+          (n: Notification) => !n.isRead
+        ).length;
         setUnreadCount(actualUnreadCount);
         console.log("Updated unread count:", actualUnreadCount);
       } else {
@@ -323,7 +324,8 @@ export const useSSENotifications = () => {
     } catch (error) {
       console.error("Error refreshing notifications:", error);
     }
-  }, [authUser]);  return {
+  }, [authUser]);
+  return {
     notifications,
     unreadCount,
     isConnected,
