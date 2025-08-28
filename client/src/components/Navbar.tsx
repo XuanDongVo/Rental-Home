@@ -18,6 +18,7 @@ import {
 } from "./ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { SidebarTrigger } from "./ui/sidebar";
+import NotificationBell from "./NotificationBell";
 
 const Navbar = () => {
   const { data: authUser } = useGetAuthUserQuery();
@@ -105,9 +106,10 @@ const Navbar = () => {
                 <MessageCircle className="w-6 h-6 cursor-pointer text-primary-200 hover:text-primary-400" />
                 <span className="absolute top-0 right-0 w-2 h-2 bg-secondary-700 rounded-full"></span>
               </div>
-              <div className="relative hidden md:block">
-                <Bell className="w-6 h-6 cursor-pointer text-primary-200 hover:text-primary-400" />
-                <span className="absolute top-0 right-0 w-2 h-2 bg-secondary-700 rounded-full"></span>
+
+              {/* Notification Bell with real-time updates */}
+              <div className="hidden md:block">
+                <NotificationBell />
               </div>
 
               <DropdownMenu>

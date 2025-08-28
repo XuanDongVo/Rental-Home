@@ -1,4 +1,7 @@
 import * as applicationRepository from "../repositories/applicationRepository";
+import { NotificationService } from "./NotificationService";
+
+const notificationService = new NotificationService();
 
 export const listApplications = async (query: any) => {
   const { userId, userType } = query;
@@ -65,7 +68,7 @@ export const createApplication = async (data: any) => {
     throw { status: 404, message: "Property not found" };
   }
 
-  return await applicationRepository.createApplicationWithLease({
+  const application = await applicationRepository.createApplicationWithLease({
     applicationDate: new Date(applicationDate),
     status,
     name,
@@ -81,6 +84,16 @@ export const createApplication = async (data: any) => {
       deposit: property.securityDeposit,
     },
   });
+
+  // Send notification to property manager
+  await notificationService.notifyApplicationSubmitted(
+    application.id,
+    name,
+    property.name,
+    property.managerCognitoId
+  );
+
+  return application;
 };
 
 export const updateApplicationStatus = async (id: number, status: string) => {
@@ -88,6 +101,8 @@ export const updateApplicationStatus = async (id: number, status: string) => {
   if (!application) {
     throw { status: 404, message: "Application not found" };
   }
+
+  let updatedApplication;
 
   if (status === "Approved") {
     const newLease = await applicationRepository.createLease({
@@ -104,13 +119,25 @@ export const updateApplicationStatus = async (id: number, status: string) => {
       application.tenantCognitoId
     );
 
-    return await applicationRepository.updateApplication(id, {
+    updatedApplication = await applicationRepository.updateApplication(id, {
       status,
       leaseId: newLease.id,
     });
   } else {
-    return await applicationRepository.updateApplication(id, { status });
+    updatedApplication = await applicationRepository.updateApplication(id, {
+      status,
+    });
   }
+
+  // Send notification to tenant about status change
+  await notificationService.notifyApplicationStatusChanged(
+    application.id,
+    status,
+    application.property.name,
+    application.tenantCognitoId
+  );
+
+  return updatedApplication;
 };
 
 function calculateNextPaymentDate(startDate: Date): Date {

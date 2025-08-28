@@ -105,6 +105,7 @@ model Manager {
   phoneNumber String
 
   managedProperties Property[]
+  notifications     Notification[]
 }
 
 model Tenant {
@@ -114,10 +115,11 @@ model Tenant {
   email       String
   phoneNumber String
 
-  properties   Property[]    @relation("TenantProperties")
-  favorites    Property[]    @relation("TenantFavorites")
-  applications Application[]
-  leases       Lease[]
+  properties    Property[]     @relation("TenantProperties")
+  favorites     Property[]     @relation("TenantFavorites")
+  applications  Application[]
+  leases        Lease[]
+  notifications Notification[]
 }
 
 model Location {
@@ -174,4 +176,49 @@ model Payment {
   leaseId       Int
 
   lease Lease @relation(fields: [leaseId], references: [id])
+}
+
+enum NotificationType {
+  ApplicationSubmitted
+  ApplicationApproved
+  ApplicationDenied
+  PaymentDue
+  PaymentReceived
+  PaymentOverdue
+  MaintenanceRequest
+  LeaseExpiring
+  NewMessage
+  PropertyUpdated
+}
+
+model Notification {
+  id        Int              @id @default(autoincrement())
+  type      NotificationType
+  title     String
+  message   String
+  data      Json? // Additional data như propertyId, applicationId, etc.
+  isRead    Boolean          @default(false)
+  createdAt DateTime         @default(now())
+
+  // Recipients - chỉ một trong hai sẽ có giá trị
+  tenantCognitoId  String?
+  managerCognitoId String?
+
+  // Relations
+  tenant  Tenant?  @relation(fields: [tenantCognitoId], references: [cognitoId])
+  manager Manager? @relation(fields: [managerCognitoId], references: [cognitoId])
+}
+
+model NotificationPreference {
+  id            Int     @id @default(autoincrement())
+  userCognitoId String  @unique
+  emailEnabled  Boolean @default(true)
+  pushEnabled   Boolean @default(true)
+  smsEnabled    Boolean @default(false)
+
+  // Notification type preferences
+  applicationNotifications Boolean @default(true)
+  paymentNotifications     Boolean @default(true)
+  maintenanceNotifications Boolean @default(true)
+  messageNotifications     Boolean @default(true)
 }

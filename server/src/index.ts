@@ -22,6 +22,7 @@ import managerRoutes from "./routes/managerRoutes";
 import propertyRoutes from "./routes/propertyRoutes";
 import leaseRoutes from "./routes/leaseRoutes";
 import applicationRoutes from "./routes/applicationRoutes";
+import notificationRoutes from "./routes/notificationRoutes";
 
 /* CONFIGURATIONS */
 dotenv.config();
@@ -32,7 +33,17 @@ app.use(helmet.crossOriginResourcePolicy({ policy: "cross-origin" })); // bảo 
 app.use(morgan("common"));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
-app.use(cors());
+
+// CORS configuration for SSE with credentials
+const corsOrigin = process.env.CORS_ORIGIN || "http://localhost:3000";
+app.use(
+  cors({
+    origin: corsOrigin, // Read from environment variable
+    credentials: true, // Allow credentials (cookies, auth headers)
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "Cache-Control"],
+  })
+);
 
 /* ROUTES */
 app.get("/", (req, res) => {
@@ -46,6 +57,7 @@ app.get("/health", (req, res) => {
 app.use("/applications", applicationRoutes);
 app.use("/properties", propertyRoutes);
 app.use("/leases", leaseRoutes);
+app.use("/notifications", notificationRoutes);
 app.use("/tenants", authMiddleware(["tenant"]), tenantRoutes);
 app.use("/managers", authMiddleware(["manager"]), managerRoutes);
 

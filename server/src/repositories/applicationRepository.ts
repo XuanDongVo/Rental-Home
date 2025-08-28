@@ -20,7 +20,12 @@ export const findApplications = async (whereClause: any) => {
 export const findPropertyById = async (propertyId: number) => {
   return await prisma.property.findUnique({
     where: { id: propertyId },
-    select: { pricePerMonth: true, securityDeposit: true },
+    select: {
+      pricePerMonth: true,
+      securityDeposit: true,
+      name: true,
+      managerCognitoId: true,
+    },
   });
 };
 
