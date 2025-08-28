@@ -12,9 +12,6 @@ const envFile =
     ? ".env.production"
     : ".env.development";
 dotenv.config({ path: envFile });
-console.log(
-  `🔧 Server Environment: ${process.env.NODE_ENV}, Loaded: ${envFile}`
-);
 
 /* ROUTE IMPORT */
 import tenantRoutes from "./routes/tenantRoutes";

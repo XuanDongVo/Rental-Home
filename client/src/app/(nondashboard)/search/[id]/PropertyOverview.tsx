@@ -1,4 +1,4 @@
-import { MapPin, Star } from "lucide-react";
+import { MapPin, Star, User, Shield } from "lucide-react";
 import React from "react";
 
 const PropertyOverview = ({ property }: PropertyOverviewProps) => {
@@ -92,6 +92,40 @@ const PropertyOverview = ({ property }: PropertyOverviewProps) => {
           attendance zone.
         </p>
       </div>
+
+      {/* Property Manager Info */}
+      {property.manager && (
+        <div className="my-16 p-6 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
+          <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+            <Shield className="w-5 h-5 text-blue-600" />
+            Property Manager
+          </h2>
+          <div className="flex items-center gap-4">
+            <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center">
+              <User className="w-8 h-8 text-white" />
+            </div>
+            <div className="flex-1">
+              <h3 className="text-lg font-semibold text-gray-900">{property.manager.name}</h3>
+              <p className="text-gray-600 mb-2">Licensed Property Manager</p>
+              <div className="flex items-center gap-4 text-sm text-gray-500">
+                <span className="flex items-center gap-1">
+                  <Star className="w-4 h-4 text-yellow-500 fill-current" />
+                  4.9 Rating
+                </span>
+                <span>•</span>
+                <span>50+ Properties Managed</span>
+                <span>•</span>
+                <span>5+ Years Experience</span>
+              </div>
+            </div>
+          </div>
+          <div className="mt-4 p-4 bg-white rounded-lg border">
+            <p className="text-sm text-gray-600">
+              💬 <strong>Available for chat</strong> - Get instant responses to your questions about this property.
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

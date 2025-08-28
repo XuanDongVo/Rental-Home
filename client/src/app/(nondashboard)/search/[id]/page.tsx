@@ -22,7 +22,6 @@ const SingleListing = () => {
     isLoading
   } = useGetPropertyQuery(propertyId);
 
-  console.log(`property: ${JSON.stringify(property)}`);
 
   if (isLoading) return <Loading />;
   if (isError || !property) {

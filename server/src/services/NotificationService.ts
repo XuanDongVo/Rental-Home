@@ -52,9 +52,6 @@ export class NotificationService {
       });
 
       if (deletedCount.count > 0) {
-        console.log(
-          `🧹 Daily cleanup: Removed ${deletedCount.count} old notifications`
-        );
       }
     } catch (error) {
       console.error("Error in daily cleanup:", error);
@@ -99,11 +96,6 @@ export class NotificationService {
         notification.tenantCognitoId,
         payload
       );
-      if (sent) {
-        console.log(
-          `Notification sent to tenant: ${notification.tenantCognitoId}`
-        );
-      }
     }
 
     if (notification.managerCognitoId) {
@@ -111,11 +103,6 @@ export class NotificationService {
         notification.managerCognitoId,
         payload
       );
-      if (sent) {
-        console.log(
-          `Notification sent to manager: ${notification.managerCognitoId}`
-        );
-      }
     }
   }
 
@@ -201,9 +188,6 @@ export class NotificationService {
       });
 
       if (deletedCount.count > 0) {
-        console.log(
-          `Cleaned up ${deletedCount.count} old notifications for user: ${userCognitoId}`
-        );
       }
     } catch (error) {
       console.error("Error cleaning up old notifications:", error);

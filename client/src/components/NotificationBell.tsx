@@ -116,9 +116,6 @@ const NotificationBell: React.FC = () => {
     const unreadNotifications = notifications.filter(n => !n.isRead);
     const readNotifications = notifications.filter(n => n.isRead);
 
-    // Debug: log notifications
-    console.log("NotificationBell - notifications:", notifications);
-    console.log("NotificationBell - unreadCount:", unreadCount);
 
     return (
         <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>

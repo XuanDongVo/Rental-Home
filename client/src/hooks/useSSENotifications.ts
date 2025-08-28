@@ -48,7 +48,6 @@ export const useSSENotifications = () => {
 
         if (response.ok) {
           const data = await response.json();
-          console.log("Fetched notifications:", data);
           setNotifications(data);
           setUnreadCount(data.filter((n: Notification) => !n.isRead).length);
         } else {
@@ -83,7 +82,6 @@ export const useSSENotifications = () => {
       eventSourceRef.current = eventSource;
 
       eventSource.onopen = () => {
-        console.log("SSE connection opened");
         setIsConnected(true);
         retryCount = 0; // Reset retry count on successful connection
       };
@@ -102,18 +100,12 @@ export const useSSENotifications = () => {
             }
           }, 2000 * retryCount); // Exponential backoff: 2s, 4s, 6s
         } else {
-          console.log("Max retries reached, stopping reconnection attempts");
         }
       };
-
-      eventSource.addEventListener("connected", (event) => {
-        console.log("SSE connected:", event.data);
-      });
 
       eventSource.addEventListener("notification", (event) => {
         try {
           const notification: Notification = JSON.parse(event.data);
-          console.log("📩 New notification received:", notification);
 
           // Add to notifications list (avoid duplicates)
           setNotifications((prev) => {
@@ -149,11 +141,6 @@ export const useSSENotifications = () => {
         }
       });
 
-      eventSource.addEventListener("ping", (event) => {
-        // Keep alive ping - no action needed
-        console.log("SSE ping received");
-      });
-
       return eventSource;
     };
 
@@ -163,7 +150,6 @@ export const useSSENotifications = () => {
     return () => {
       if (source) {
         source.close();
-        console.log("SSE connection closed!");
       }
       setIsConnected(false);
     };
@@ -173,9 +159,6 @@ export const useSSENotifications = () => {
   useEffect(() => {
     const actualUnreadCount = notifications.filter((n) => !n.isRead).length;
     if (unreadCount !== actualUnreadCount) {
-      console.log(
-        `🔄 Syncing unread count: ${unreadCount} -> ${actualUnreadCount}`
-      );
       setUnreadCount(actualUnreadCount);
     }
   }, [notifications, unreadCount]);
@@ -296,7 +279,6 @@ export const useSSENotifications = () => {
         return;
       }
 
-      console.log("Refreshing notifications...");
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_BASE_URL}/notifications`,
         {
@@ -306,18 +288,14 @@ export const useSSENotifications = () => {
         }
       );
 
-      console.log("Refresh response status:", response.status);
-
       if (response.ok) {
         const data = await response.json();
-        console.log("Refreshed notifications data:", data);
         setNotifications(data);
         // Recalculate unread count accurately
         const actualUnreadCount = data.filter(
           (n: Notification) => !n.isRead
         ).length;
         setUnreadCount(actualUnreadCount);
-        console.log("Updated unread count:", actualUnreadCount);
       } else {
         console.error("Failed to refresh notifications:", response.statusText);
       }

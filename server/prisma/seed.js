@@ -30,11 +30,10 @@ function insertLocationData(locations) {
         for (const location of locations) {
             const { id, country, city, state, address, postalCode, coordinates } = location;
             try {
-                yield prisma.$executeRaw `
+                yield prisma.$executeRaw`
         INSERT INTO "Location" ("id", "country", "city", "state", "address", "postalCode", "coordinates") 
         VALUES (${id}, ${country}, ${city}, ${state}, ${address}, ${postalCode}, ST_GeomFromText(${coordinates}, 4326));
       `;
-                console.log(`Inserted location for ${city}`);
             }
             catch (error) {
                 console.error(`Error inserting location for ${city}:`, error);
@@ -56,7 +55,6 @@ function resetSequence(modelName) {
         yield prisma.$executeRawUnsafe(`
     SELECT setval(pg_get_serial_sequence('${quotedModelName}', 'id'), coalesce(max(id)+1, ${nextId}), false) FROM ${quotedModelName};
   `);
-        console.log(`Reset sequence for ${modelName} to ${nextId}`);
     });
 }
 function deleteAllData(orderedFileNames) {
@@ -73,7 +71,6 @@ function deleteAllData(orderedFileNames) {
             }
             try {
                 yield model.deleteMany({});
-                console.log(`Cleared data from ${modelName}`);
             }
             catch (error) {
                 console.error(`Error clearing data from ${modelName}:`, error);
@@ -112,7 +109,6 @@ function main() {
                             data: item,
                         });
                     }
-                    console.log(`Seeded ${modelName} with data from ${fileName}`);
                 }
                 catch (error) {
                     console.error(`Error seeding data for ${modelName}:`, error);

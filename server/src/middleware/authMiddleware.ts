@@ -35,14 +35,6 @@ export const authMiddleware = (allowedRoles: string[]) => {
       const decoded = jwt.decode(token) as DecodedToken;
       const userRole = decoded["custom:role"] || "";
 
-      console.log("🔍 Auth Debug:", {
-        userId: decoded.sub,
-        userRole,
-        allowedRoles,
-        hasRole: !!userRole,
-        hasAccess: allowedRoles.includes(userRole.toLowerCase()),
-      });
-
       req.user = {
         id: decoded.sub,
         role: userRole,
@@ -51,14 +43,6 @@ export const authMiddleware = (allowedRoles: string[]) => {
       const hasAccess = allowedRoles.includes(userRole.toLowerCase());
 
       if (!hasAccess) {
-        console.log(
-          "❌ Access denied for user:",
-          decoded.sub,
-          "Role:",
-          userRole,
-          "Required:",
-          allowedRoles
-        );
         res.status(403).json({ message: "Access deny" });
         return;
       }

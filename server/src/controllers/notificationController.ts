@@ -44,8 +44,6 @@ export const connectSSESimple = async (
     // or you can add userType as another query parameter
     const userType = (req.query.type as "tenant" | "manager") || "tenant";
 
-    console.log(`SSE Simple connection for user: ${userId}, type: ${userType}`);
-
     // Establish SSE connection
     sseManager.addConnection(userId, userType, res);
 

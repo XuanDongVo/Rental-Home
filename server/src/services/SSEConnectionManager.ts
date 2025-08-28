@@ -51,8 +51,6 @@ class SSEConnectionManager {
     response.on("close", () => {
       this.removeConnection(userId);
     });
-
-    console.log(`SSE connection established for ${userType}: ${userId}`);
   }
 
   removeConnection(userId: string): void {
@@ -60,7 +58,6 @@ class SSEConnectionManager {
     if (connection) {
       connection.response.end();
       this.connections.delete(userId);
-      console.log(`SSE connection closed for user: ${userId}`);
     }
   }
 

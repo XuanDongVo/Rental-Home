@@ -11,7 +11,6 @@ const ApplicationCard = ({
     application.property.photoUrls?.[0] || "/placeholder.jpg"
   );
 
-  console.log("ApplicationCard rendered with application:", application);
 
   const statusColor =
     application.status === "Approved"
