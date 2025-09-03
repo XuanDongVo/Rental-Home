@@ -55,14 +55,16 @@ A comprehensive property rental management platform built with modern web techno
 
 - ✅ **Lease Management**
 
-  - View all active and expired leases
+  - **Integrated Property Detail Tabs** - Streamlined lease management within property details
+  - View all active and expired leases in property detail view
   - Monitor lease terms and rental amounts
   - Track payment status for each lease
   - Lease history and documentation
 
 - ✅ **Termination Request Management**
 
-  - Review tenant termination requests
+  - **Integrated Property Management** - Review requests directly in property detail tabs
+  - Review tenant termination requests within property interface
   - Approve/reject requests with detailed responses
   - Automated lease status updates
   - Communication tracking with tenants
@@ -90,10 +92,11 @@ A comprehensive property rental management platform built with modern web techno
 
 - ✅ **Residence Management**
 
-  - View current lease information
+  - **Integrated Property Detail Interface** - Streamlined lease and termination management
+  - View current lease information in tabbed property interface
   - Access lease documents and agreements
-  - Submit lease termination requests
-  - Track termination request status
+  - Submit lease termination requests through property detail tabs
+  - Track termination request status with real-time updates
 
 - ✅ **Payment Tracking**
 

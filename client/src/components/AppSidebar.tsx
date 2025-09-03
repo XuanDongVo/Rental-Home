@@ -17,8 +17,6 @@ import {
   Menu,
   Settings,
   X,
-  ScrollText,
-  AlertTriangle,
 } from "lucide-react";
 import { NAVBAR_HEIGHT } from "@/lib/constants";
 import { cn } from "@/lib/utils";
@@ -37,16 +35,6 @@ const AppSidebar = ({ userType }: AppSidebarProps) => {
           label: "Applications",
           href: "/managers/applications",
         },
-        {
-          icon: ScrollText,
-          label: "Leases",
-          href: "/managers/leases"
-        },
-        {
-          icon: AlertTriangle,
-          label: "Termination Requests",
-          href: "/managers/termination-requests"
-        },
         { icon: Settings, label: "Settings", href: "/managers/settings" },
       ]
       : [
@@ -57,11 +45,6 @@ const AppSidebar = ({ userType }: AppSidebarProps) => {
           href: "/tenants/applications",
         },
         { icon: Home, label: "Residences", href: "/tenants/residences" },
-        {
-          icon: AlertTriangle,
-          label: "Termination Requests",
-          href: "/tenants/termination-requests"
-        },
         { icon: Settings, label: "Settings", href: "/tenants/settings" },
       ];
 
