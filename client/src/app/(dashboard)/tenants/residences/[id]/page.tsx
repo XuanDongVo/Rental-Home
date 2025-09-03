@@ -1,6 +1,7 @@
 "use client";
 
 import Loading from "@/components/Loading";
+import TerminateLeaseModal from "@/components/TerminateLeaseModal";
 import {
   Table,
   TableBody,
@@ -26,9 +27,10 @@ import {
   Mail,
   MapPin,
   User,
+  XCircle,
 } from "lucide-react";
 import { useParams } from "next/navigation";
-import React from "react";
+import React, { useState } from "react";
 
 const PaymentMethod = () => {
   return (
@@ -78,9 +80,11 @@ const PaymentMethod = () => {
 const ResidenceCard = ({
   property,
   currentLease,
+  onTerminateLease,
 }: {
   property: Property;
   currentLease: Lease;
+  onTerminateLease: () => void;
 }) => {
   return (
     <div className="bg-white rounded-xl shadow-md overflow-hidden p-6 flex-1 flex flex-col justify-between">
@@ -145,6 +149,13 @@ const ResidenceCard = ({
           <Download className="w-5 h-5 mr-2" />
           Download Agreement
         </button>
+        <button
+          onClick={onTerminateLease}
+          className="bg-red-50 border border-red-300 text-red-700 py-2 px-4 rounded-md flex items-center justify-center hover:bg-red-500 hover:text-white transition-colors"
+        >
+          <XCircle className="w-5 h-5 mr-2" />
+          Terminate Lease
+        </button>
       </div>
     </div>
   );
@@ -195,11 +206,10 @@ const BillingHistory = ({ payments }: { payments: Payment[] }) => {
                 </TableCell>
                 <TableCell>
                   <span
-                    className={`px-2 py-1 rounded-full text-xs font-semibold border ${
-                      payment.paymentStatus === "Paid"
+                    className={`px-2 py-1 rounded-full text-xs font-semibold border ${payment.paymentStatus === "Paid"
                         ? "bg-green-100 text-green-800 border-green-300"
                         : "bg-yellow-100 text-yellow-800 border-yellow-300"
-                    }`}
+                      }`}
                   >
                     {payment.paymentStatus === "Paid" ? (
                       <Check className="w-4 h-4 inline-block mr-1" />
@@ -229,6 +239,8 @@ const BillingHistory = ({ payments }: { payments: Payment[] }) => {
 const Residence = () => {
   const { id } = useParams();
   const { data: authUser } = useGetAuthUserQuery();
+  const [isTerminateModalOpen, setIsTerminateModalOpen] = useState(false);
+
   const {
     data: property,
     isLoading: propertyLoading,
@@ -251,16 +263,38 @@ const Residence = () => {
     (lease) => lease.propertyId === property.id
   );
 
+  const handleTerminateSuccess = () => {
+    // Refresh data hoặc navigate
+    console.log("Terminate request sent successfully");
+  };
+
+  const handleOpenTerminateModal = () => {
+    setIsTerminateModalOpen(true);
+  };
+
   return (
     <div className="dashboard-container">
       <div className="w-full mx-auto">
         <div className="md:flex gap-10">
           {currentLease && (
-            <ResidenceCard property={property} currentLease={currentLease} />
+            <ResidenceCard
+              property={property}
+              currentLease={currentLease}
+              onTerminateLease={handleOpenTerminateModal}
+            />
           )}
           <PaymentMethod />
         </div>
         <BillingHistory payments={payments || []} />
+
+        {currentLease && (
+          <TerminateLeaseModal
+            isOpen={isTerminateModalOpen}
+            onClose={() => setIsTerminateModalOpen(false)}
+            lease={currentLease}
+            onSuccess={handleTerminateSuccess}
+          />
+        )}
       </div>
     </div>
   );

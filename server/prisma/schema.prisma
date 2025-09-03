@@ -52,6 +52,19 @@ enum PropertyType {
   Cottage
 }
 
+enum LeaseStatus {
+  Active
+  Terminated
+  Expired
+  PendingTermination
+}
+
+enum TerminationRequestStatus {
+  Pending
+  Approved
+  Rejected
+}
+
 enum ApplicationStatus {
   Pending
   Denied
@@ -104,8 +117,9 @@ model Manager {
   email       String
   phoneNumber String
 
-  managedProperties Property[]
-  notifications     Notification[]
+  managedProperties   Property[]
+  notifications       Notification[]
+  terminationRequests TerminationRequest[]
 }
 
 model Tenant {
@@ -115,11 +129,12 @@ model Tenant {
   email       String
   phoneNumber String
 
-  properties    Property[]     @relation("TenantProperties")
-  favorites     Property[]     @relation("TenantFavorites")
-  applications  Application[]
-  leases        Lease[]
-  notifications Notification[]
+  properties          Property[]           @relation("TenantProperties")
+  favorites           Property[]           @relation("TenantFavorites")
+  applications        Application[]
+  leases              Lease[]
+  notifications       Notification[]
+  terminationRequests TerminationRequest[]
 }
 
 model Location {
@@ -152,18 +167,38 @@ model Application {
 }
 
 model Lease {
-  id              Int      @id @default(autoincrement())
-  startDate       DateTime
-  endDate         DateTime
-  rent            Float
-  deposit         Float
-  propertyId      Int
-  tenantCognitoId String
+  id                Int         @id @default(autoincrement())
+  startDate         DateTime
+  endDate           DateTime
+  rent              Float
+  deposit           Float
+  status            LeaseStatus @default(Active)
+  terminationDate   DateTime?
+  terminationReason String?
+  propertyId        Int
+  tenantCognitoId   String
 
-  property    Property     @relation(fields: [propertyId], references: [id])
-  tenant      Tenant       @relation(fields: [tenantCognitoId], references: [cognitoId])
-  application Application?
-  payments    Payment[]
+  property            Property             @relation(fields: [propertyId], references: [id])
+  tenant              Tenant               @relation(fields: [tenantCognitoId], references: [cognitoId])
+  application         Application?
+  payments            Payment[]
+  terminationRequests TerminationRequest[]
+}
+
+model TerminationRequest {
+  id               Int                      @id @default(autoincrement())
+  reason           String
+  requestDate      DateTime                 @default(now())
+  status           TerminationRequestStatus @default(Pending)
+  managerResponse  String?
+  responseDate     DateTime?
+  leaseId          Int
+  tenantCognitoId  String
+  managerCognitoId String?
+
+  lease   Lease    @relation(fields: [leaseId], references: [id])
+  tenant  Tenant   @relation(fields: [tenantCognitoId], references: [cognitoId])
+  manager Manager? @relation(fields: [managerCognitoId], references: [cognitoId])
 }
 
 model Payment {

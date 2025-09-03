@@ -17,6 +17,8 @@ import {
   Menu,
   Settings,
   X,
+  ScrollText,
+  AlertTriangle,
 } from "lucide-react";
 import { NAVBAR_HEIGHT } from "@/lib/constants";
 import { cn } from "@/lib/utils";
@@ -29,24 +31,39 @@ const AppSidebar = ({ userType }: AppSidebarProps) => {
   const navLinks =
     userType === "manager"
       ? [
-          { icon: Building, label: "Properties", href: "/managers/properties" },
-          {
-            icon: FileText,
-            label: "Applications",
-            href: "/managers/applications",
-          },
-          { icon: Settings, label: "Settings", href: "/managers/settings" },
-        ]
+        { icon: Building, label: "Properties", href: "/managers/properties" },
+        {
+          icon: FileText,
+          label: "Applications",
+          href: "/managers/applications",
+        },
+        {
+          icon: ScrollText,
+          label: "Leases",
+          href: "/managers/leases"
+        },
+        {
+          icon: AlertTriangle,
+          label: "Termination Requests",
+          href: "/managers/termination-requests"
+        },
+        { icon: Settings, label: "Settings", href: "/managers/settings" },
+      ]
       : [
-          { icon: Heart, label: "Favorites", href: "/tenants/favorites" },
-          {
-            icon: FileText,
-            label: "Applications",
-            href: "/tenants/applications",
-          },
-          { icon: Home, label: "Residences", href: "/tenants/residences" },
-          { icon: Settings, label: "Settings", href: "/tenants/settings" },
-        ];
+        { icon: Heart, label: "Favorites", href: "/tenants/favorites" },
+        {
+          icon: FileText,
+          label: "Applications",
+          href: "/tenants/applications",
+        },
+        { icon: Home, label: "Residences", href: "/tenants/residences" },
+        {
+          icon: AlertTriangle,
+          label: "Termination Requests",
+          href: "/tenants/termination-requests"
+        },
+        { icon: Settings, label: "Settings", href: "/tenants/settings" },
+      ];
 
   return (
     <Sidebar
@@ -111,14 +128,12 @@ const AppSidebar = ({ userType }: AppSidebarProps) => {
                   <Link href={link.href} className="w-full" scroll={false}>
                     <div className="flex items-center gap-3">
                       <link.icon
-                        className={`h-5 w-5 ${
-                          isActive ? "text-blue-600" : "text-gray-600"
-                        }`}
+                        className={`h-5 w-5 ${isActive ? "text-blue-600" : "text-gray-600"
+                          }`}
                       />
                       <span
-                        className={`font-medium ${
-                          isActive ? "text-blue-600" : "text-gray-600"
-                        }`}
+                        className={`font-medium ${isActive ? "text-blue-600" : "text-gray-600"
+                          }`}
                       >
                         {link.label}
                       </span>
