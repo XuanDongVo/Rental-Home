@@ -7,6 +7,7 @@ const prisma = new PrismaClient();
 export const getTenant = async (req: Request, res: Response): Promise<void> => {
   try {
     const { cognitoId } = req.params;
+    console.log("Fetching tenant with cognitoId:", cognitoId);
     const tenant = await prisma.tenant.findUnique({
       where: { cognitoId },
       include: {

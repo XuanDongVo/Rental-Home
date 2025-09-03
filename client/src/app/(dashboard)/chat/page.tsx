@@ -12,7 +12,7 @@ import ChatContainer from "@/components/chat/ChatContainer";
 
 const ChatPage = () => {
     console.log('🎯 ChatPage rendering...');
-    
+
     return (
         <div className="h-screen flex items-center justify-center bg-blue-100">
             <div className="text-center">

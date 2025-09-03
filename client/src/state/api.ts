@@ -38,9 +38,52 @@ export const api = createApi({
       queryFn: async (_, _queryApi, _extraoptions, fetchWithBQ) => {
         try {
           const session = await fetchAuthSession();
-          const { idToken } = session.tokens ?? {};
           const user = await getCurrentUser();
-          const userRole = idToken?.payload["custom:role"] as string;
+
+          // Check if session has tokens
+          if (!session.tokens || !session.tokens.idToken) {
+            // Try to get a fresh session
+            const freshSession = await fetchAuthSession({ forceRefresh: true });
+
+            if (!freshSession.tokens || !freshSession.tokens.idToken) {
+              return { error: "Authentication required. Please log in again." };
+            }
+
+            // Use fresh session
+            session.tokens = freshSession.tokens;
+          }
+
+          const { idToken } = session.tokens;
+
+          // Try multiple ways to get the role
+          let userRole = idToken?.payload["custom:role"] as string;
+
+          // Fallback options if custom:role is not found
+          if (!userRole) {
+            userRole = idToken?.payload["role"] as string;
+          }
+          if (!userRole) {
+            const groups = idToken?.payload["cognito:groups"] as string[];
+            userRole = groups?.[0];
+          }
+          if (!userRole) {
+            userRole = idToken?.payload["custom:userRole"] as string;
+          }
+
+          // Check if role is in username (as fallback based on your logs)
+          if (!userRole && user.username) {
+            if (user.username.toLowerCase().includes("tenant")) {
+              userRole = "tenant";
+            } else if (user.username.toLowerCase().includes("manager")) {
+              userRole = "manager";
+            }
+          }
+
+          // Default to tenant if no role found (since user mentioned role is tenant on AWS)
+          if (!userRole) {
+            userRole = "tenant";
+            console.warn("No role found in token, defaulting to 'tenant'");
+          }
 
           const endpoint =
             userRole === "manager"
@@ -70,6 +113,7 @@ export const api = createApi({
             },
           };
         } catch (error: any) {
+          console.error("Error in getAuthUser:", error);
           return { error: error.message || "Could not fetch user data" };
         }
       },
