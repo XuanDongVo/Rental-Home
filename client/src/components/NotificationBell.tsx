@@ -41,7 +41,7 @@ const NotificationItem: React.FC<NotificationItemProps> = ({
         <div
             className={`p-3 border-b cursor-pointer hover:bg-gray-50 transition-colors relative ${!notification.isRead
                 ? "bg-blue-50 border-l-4 border-l-blue-500"
-                : "bg-white hover:bg-gray-50"
+                : " "
                 }`}
             onClick={handleClick}
         >
@@ -120,8 +120,12 @@ const NotificationBell: React.FC = () => {
     return (
         <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
             <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="relative">
-                    <Bell className="h-6 w-6" />
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    className="relative text-primary-200 hover:text-white hover:bg-white/10 h-10 w-10"
+                >
+                    <Bell className="h-7 w-7" />
                     {unreadCount > 0 && (
                         <Badge
                             variant="destructive"

@@ -8,7 +8,7 @@ import { Button } from "./ui/button";
 import { useGetAuthUserQuery } from "@/state/api";
 import { usePathname, useRouter } from "next/navigation";
 import { signOut } from "aws-amplify/auth";
-import { Bell, MessageCircle, Plus, Search } from "lucide-react";
+import { Bell, Plus, Search } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,6 +19,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { SidebarTrigger } from "./ui/sidebar";
 import NotificationBell from "./NotificationBell";
+import MessageIcon from "./MessageIcon";
 
 const Navbar = () => {
   const { data: authUser } = useGetAuthUserQuery();
@@ -103,8 +104,7 @@ const Navbar = () => {
           {authUser ? (
             <>
               <div className="relative hidden md:block">
-                <MessageCircle className="w-6 h-6 cursor-pointer text-primary-200 hover:text-primary-400" />
-                <span className="absolute top-0 right-0 w-2 h-2 bg-secondary-700 rounded-full"></span>
+                <MessageIcon />
               </div>
 
               {/* Notification Bell with real-time updates */}

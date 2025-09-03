@@ -9,6 +9,7 @@ interface Message {
     timestamp: Date;
     isFromUser: boolean;
     status?: 'sent' | 'delivered' | 'read';
+    isRead?: boolean; // New property to track if message is read
 }
 
 interface Conversation {
@@ -27,12 +28,14 @@ interface ChatMessagesProps {
     messages: Message[];
     conversation: Conversation;
     isTyping?: boolean;
+    onMessageRead?: (messageId: string) => void;
 }
 
 const ChatMessages: React.FC<ChatMessagesProps> = ({
     messages,
     conversation,
-    isTyping = false
+    isTyping = false,
+    onMessageRead
 }) => {
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -43,6 +46,16 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
     useEffect(() => {
         scrollToBottom();
     }, [messages]);
+
+    // Mark messages as read when they come into view
+    useEffect(() => {
+        const unreadMessages = messages.filter(msg => !msg.isFromUser && !msg.isRead);
+        unreadMessages.forEach(msg => {
+            if (onMessageRead) {
+                onMessageRead(msg.id);
+            }
+        });
+    }, [messages, onMessageRead]);
 
     const formatTime = (date: Date) => {
         return date.toLocaleTimeString('en-US', {
@@ -70,11 +83,16 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
                                 </Avatar>
                             )}
 
-                            <div className={`p-3 rounded-2xl ${message.isFromUser
+                            <div className={`p-3 rounded-2xl relative ${message.isFromUser
                                 ? 'bg-primary-600 text-white'
-                                : 'bg-white text-gray-900 shadow-sm border'
+                                : `bg-white text-gray-900 shadow-sm border ${!message.isRead && !message.isFromUser ? 'ring-2 ring-blue-200 bg-blue-50' : ''}`
                                 }`}>
                                 <p className="text-sm leading-relaxed">{message.text}</p>
+
+                                {/* Unread indicator for received messages */}
+                                {!message.isFromUser && !message.isRead && (
+                                    <div className="absolute -left-2 top-1/2 transform -translate-y-1/2 w-3 h-3 bg-blue-500 rounded-full"></div>
+                                )}
 
                                 <div className={`flex items-center gap-1 mt-1 ${message.isFromUser ? 'justify-end' : 'justify-start'
                                     }`}>

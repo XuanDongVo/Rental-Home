@@ -7,6 +7,7 @@ import ChatHeader from "./ChatHeader";
 import ChatMessages from "./ChatMessages";
 import ChatInput from "./ChatInput";
 import { MessageCircle } from "lucide-react";
+import { useUnreadMessages } from "@/hooks/useUnreadMessages";
 
 interface Conversation {
     id: string;
@@ -26,6 +27,7 @@ interface Message {
     timestamp: Date;
     isFromUser: boolean;
     status?: 'sent' | 'delivered' | 'read';
+    isRead?: boolean;
 }
 
 interface ChatContainerProps {
@@ -44,6 +46,7 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
     autoSelectConversation = true
 }) => {
     const router = useRouter();
+    const { markAsRead } = useUnreadMessages();
 
     console.log('🎯 ChatContainer props:', {
         propertyId,
@@ -244,6 +247,15 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
                             messages={messages}
                             conversation={selectedConv}
                             isTyping={isTyping}
+                            onMessageRead={(messageId) => {
+                                // Mark message as read locally
+                                setMessages(prev => prev.map(msg =>
+                                    msg.id === messageId ? { ...msg, isRead: true } : msg
+                                ));
+
+                                // Mark conversation as read in global state
+                                markAsRead(selectedConv.id);
+                            }}
                         />
 
                         <ChatInput

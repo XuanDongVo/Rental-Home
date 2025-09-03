@@ -5,7 +5,18 @@ export { default as ChatHeader } from "./ChatHeader";
 export { default as ChatMessages } from "./ChatMessages";
 export { default as ChatInput } from "./ChatInput";
 
-// Types
+// Chat Page Components
+export { default as ChatPageWrapper } from "./ChatPageWrapper";
+export { default as ChatLoadingSpinner } from "./ChatLoadingSpinner";
+export { default as ChatAuthRequired } from "./ChatAuthRequired";
+
+// Hooks và types
+export { useChatParams, type ChatParams } from "../../hooks/useChatParams";
+
+// Component types
+export * from "./types";
+
+// Legacy interfaces (có thể được refactor sau)
 export interface Conversation {
   id: string;
   managerName: string;

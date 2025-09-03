@@ -109,12 +109,12 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
                                     </p>
 
                                     <div className="flex items-center justify-between">
-                                        <p className="text-sm text-gray-500 truncate flex-1">
+                                        <p className={`text-sm truncate flex-1 ${conversation.unreadCount > 0 ? 'font-semibold text-gray-900' : 'text-gray-500'}`}>
                                             {conversation.lastMessage}
                                         </p>
                                         {conversation.unreadCount > 0 && (
-                                            <span className="ml-2 bg-primary-600 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                                                {conversation.unreadCount}
+                                            <span className="ml-2 bg-red-500 text-white text-xs rounded-full min-w-[20px] h-5 px-1 flex items-center justify-center font-bold">
+                                                {conversation.unreadCount > 99 ? '99+' : conversation.unreadCount}
                                             </span>
                                         )}
                                     </div>
