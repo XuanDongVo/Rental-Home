@@ -5,9 +5,11 @@ import {
   createProperty,
   deleteProperty,
   updateProperty,
+  getLeaseByPropertyId,
 } from "../controllers/propertyControllers";
 import multer from "multer";
 import { authMiddleware } from "../middleware/authMiddleware";
+import route from "./tenantRoutes";
 
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
@@ -28,5 +30,11 @@ router.put(
   authMiddleware(["manager"]),
   upload.array("photos"),
   updateProperty
+);
+
+route.get(
+  ":propertyId/leases",
+  authMiddleware(["manager", "tenant"]),
+  getLeaseByPropertyId
 );
 export default router;

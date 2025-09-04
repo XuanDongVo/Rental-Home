@@ -1,14 +1,16 @@
-import express from "express";
-import { authMiddleware } from "../middleware/authMiddleware";
-import { getLeasePayments, getLeases } from "../controllers/leaseControllers";
+// import express from "express";
+// import { authMiddleware } from "../middleware/authMiddleware";
+// import {
+//   getLeasePayments,
+//   getLeaseByPropertyId,
+// } from "../controllers/leaseControllers";
 
-const router = express.Router();
+// const router = express.Router();
 
-router.get("/", authMiddleware(["manager", "tenant"]), getLeases);
-router.get(
-  "/:id/payments",
-  authMiddleware(["manager", "tenant"]),
-  getLeasePayments
-);
+// router.get(
+//   "/:propertyId",
+//   authMiddleware(["manager", "tenant"]),
+//   getLeaseByPropertyId
+// );
 
-export default router;
+// export default router;

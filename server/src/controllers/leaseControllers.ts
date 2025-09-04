@@ -1,23 +1,8 @@
 import { PrismaClient } from "@prisma/client";
+import { getLeaseByPropertyId as getLeaseByPropertyIdService } from "../services/leaseService";
 import { Request, Response } from "express";
 
 const prisma = new PrismaClient();
-
-export const getLeases = async (req: Request, res: Response): Promise<void> => {
-  try {
-    const leases = await prisma.lease.findMany({
-      include: {
-        tenant: true,
-        property: true,
-      },
-    });
-    res.json(leases);
-  } catch (error: any) {
-    res
-      .status(500)
-      .json({ message: `Error retrieving leases: ${error.message}` });
-  }
-};
 
 export const getLeasePayments = async (
   req: Request,

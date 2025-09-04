@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import * as propertyService from "../services/propertyService";
+import { getLeaseByPropertyId as getLeaseByPropertyIdService } from "../services/leaseService";
 
 export const getProperties = async (
   req: Request,
@@ -77,5 +78,29 @@ export const updateProperty = async (
     res.status(200).json(updatedProperty);
   } catch (error: any) {
     res.status(error.status || 500).json({ message: error.message });
+  }
+};
+
+export const getLeaseByPropertyId = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const { propertyId, cognito } = req.body;
+    const lease = await getLeaseByPropertyIdService(
+      propertyId as unknown as number,
+      cognito as string
+    );
+    if (!lease) {
+      res
+        .status(404)
+        .json({ message: "Lease not found for the given property ID" });
+      return;
+    }
+    res.json(lease);
+  } catch (error: any) {
+    res
+      .status(500)
+      .json({ message: `Error retrieving leases: ${error.message}` });
   }
 };
