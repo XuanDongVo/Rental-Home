@@ -549,6 +549,149 @@ export const api = createApi({
         });
       },
     }),
+
+    // Payment endpoints
+    recordPayment: build.mutation<
+      Payment,
+      { paymentId: number; amountPaid: number; paymentDate?: string }
+    >({
+      query: ({ paymentId, amountPaid, paymentDate }) => ({
+        url: `payments/${paymentId}/record`,
+        method: "POST",
+        body: { amountPaid, paymentDate },
+      }),
+      invalidatesTags: (result, error, { paymentId }) => [
+        { type: "Payments", id: "LIST" },
+        { type: "Payments", id: paymentId },
+      ],
+      async onQueryStarted(_, { queryFulfilled }) {
+        await withToast(queryFulfilled, {
+          success: "Payment recorded successfully!",
+          error: "Failed to record payment.",
+        });
+      },
+    }),
+
+    getPaymentsByLease: build.query<Payment[], number>({
+      query: (leaseId) => `payments/lease/${leaseId}`,
+      providesTags: (result, error, leaseId) => [
+        { type: "Payments", id: "LIST" },
+        { type: "Leases", id: leaseId },
+      ],
+    }),
+
+    getPaymentsByProperty: build.query<
+      Array<{
+        id: number;
+        amountDue: number;
+        amountPaid: number;
+        dueDate: string;
+        paymentDate?: string;
+        paymentStatus: "Pending" | "Paid" | "PartiallyPaid" | "Overdue";
+        lease: {
+          tenant: {
+            id: number;
+            name: string;
+            email: string;
+          };
+        };
+      }>,
+      number
+    >({
+      query: (propertyId) => `payments/property/${propertyId}`,
+      providesTags: (result, error, propertyId) => [
+        { type: "Payments", id: "LIST" },
+        { type: "PropertyDetails", id: propertyId },
+      ],
+    }),
+
+    getCurrentMonthPaymentStatusByLease: build.query<
+      {
+        paymentStatus: string;
+        amountDue: number;
+        amountPaid: number;
+        dueDate: string | null;
+        paymentDate: string | null;
+      },
+      number
+    >({
+      query: (leaseId) => `payments/lease/${leaseId}/current-status`,
+      providesTags: (result, error, leaseId) => [
+        { type: "Payments", id: "LIST" },
+        { type: "Leases", id: leaseId },
+      ],
+    }),
+
+    getCurrentMonthPaymentStatusByProperty: build.query<
+      {
+        paymentStatus: string;
+        amountDue: number;
+        amountPaid: number;
+        dueDate: string | null;
+        paymentDate: string | null;
+      },
+      number
+    >({
+      query: (propertyId) => `properties/${propertyId}/current-month-payment`,
+      providesTags: (result, error, propertyId) => [
+        { type: "Payments", id: "LIST" },
+        { type: "PropertyDetails", id: propertyId },
+      ],
+    }),
+
+    getOverduePayments: build.query<
+      Array<{
+        id: number;
+        amountDue: number;
+        amountPaid: number;
+        dueDate: string;
+        lease: {
+          tenant: { name: string; email: string };
+          property: { name: string };
+        };
+      }>,
+      { userType: string; userId: string }
+    >({
+      query: ({ userType, userId }) =>
+        `payments/overdue?userType=${userType}&userId=${userId}`,
+      providesTags: [{ type: "Payments", id: "OVERDUE" }],
+    }),
+
+    checkOverduePayments: build.mutation<
+      { message: string; overduePayments: any[] },
+      void
+    >({
+      query: () => ({
+        url: "payments/check-overdue",
+        method: "POST",
+      }),
+      invalidatesTags: [{ type: "Payments", id: "LIST" }],
+      async onQueryStarted(_, { queryFulfilled }) {
+        await withToast(queryFulfilled, {
+          success: "Overdue payments checked successfully!",
+          error: "Failed to check overdue payments.",
+        });
+      },
+    }),
+
+    // Termination Request endpoints
+    submitTerminationRequest: build.mutation<
+      any,
+      { leaseId: number; reason: string; tenantCognitoId: string }
+    >({
+      query: ({ leaseId, reason, tenantCognitoId }) => ({
+        url: "termination-requests",
+        method: "POST",
+        body: { leaseId, reason, tenantCognitoId },
+      }),
+      invalidatesTags: [{ type: "Leases", id: "LIST" }],
+      async onQueryStarted(_, { queryFulfilled }) {
+        await withToast(queryFulfilled, {
+          success: "Termination request submitted successfully!",
+          error: "Failed to submit termination request.",
+        });
+      },
+    }),
   }),
 });
 
@@ -579,4 +722,14 @@ export const {
   useGetPaymentHistoryByPropertyQuery,
   useGetPreviousTenantsForPropertyQuery,
   useGetCurrentMonthPaymentStatusQuery,
+  // Payment hooks
+  useRecordPaymentMutation,
+  useGetPaymentsByLeaseQuery,
+  useGetPaymentsByPropertyQuery,
+  useGetCurrentMonthPaymentStatusByLeaseQuery,
+  useGetCurrentMonthPaymentStatusByPropertyQuery,
+  useGetOverduePaymentsQuery,
+  useCheckOverduePaymentsMutation,
+  // Termination Request hooks
+  useSubmitTerminationRequestMutation,
 } = api;

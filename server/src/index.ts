@@ -20,6 +20,8 @@ import propertyRoutes from "./routes/propertyRoutes";
 // import leaseRoutes from "./routes/leaseRoutes";
 import applicationRoutes from "./routes/applicationRoutes";
 import notificationRoutes from "./routes/notificationRoutes";
+import paymentRoutes from "./routes/paymentRoutes";
+import { initializeScheduledTasks } from "./services/scheduledTasks";
 
 /* CONFIGURATIONS */
 dotenv.config();
@@ -55,6 +57,7 @@ app.use("/applications", applicationRoutes);
 app.use("/properties", propertyRoutes);
 // app.use("/leases", leaseRoutes);
 app.use("/notifications", notificationRoutes);
+app.use("/payments", paymentRoutes);
 app.use("/tenants", authMiddleware(["tenant"]), tenantRoutes);
 app.use("/managers", authMiddleware(["manager"]), managerRoutes);
 
@@ -62,4 +65,7 @@ app.use("/managers", authMiddleware(["manager"]), managerRoutes);
 const port = Number(process.env.PORT) || 3002;
 app.listen(port, "0.0.0.0", () => {
   console.log(`Server running on port ${port}`);
+
+  // Initialize scheduled tasks after server starts
+  initializeScheduledTasks();
 });

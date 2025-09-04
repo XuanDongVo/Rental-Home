@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import * as propertyService from "../services/propertyService";
 import { getLeaseByPropertyId as getLeaseByPropertyIdService } from "../services/leaseService";
+import * as paymentService from "../services/paymentService";
 
 export const getProperties = async (
   req: Request,
@@ -102,5 +103,39 @@ export const getLeaseByPropertyId = async (
     res
       .status(500)
       .json({ message: `Error retrieving leases: ${error.message}` });
+  }
+};
+
+export const getCurrentMonthPaymentStatusByProperty = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const { propertyId } = req.params;
+
+    // First get the current lease for this property
+    const leases = await getLeaseByPropertyIdService(
+      Number(propertyId),
+      req.user?.id as string
+    );
+
+    if (!leases || leases.length === 0) {
+      res
+        .status(404)
+        .json({ message: "No active lease found for this property" });
+      return;
+    }
+
+    const currentLease = leases[0]; // Get the first lease
+
+    // Get current month payment status for this lease
+    const paymentStatus = await paymentService.getCurrentMonthPaymentStatus(
+      currentLease.id
+    );
+    res.json(paymentStatus);
+  } catch (error: any) {
+    res
+      .status(500)
+      .json({ message: `Error retrieving payment status: ${error.message}` });
   }
 };

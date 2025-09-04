@@ -12,7 +12,8 @@ export type NotificationType =
   | "MaintenanceRequest"
   | "LeaseExpiring"
   | "NewMessage"
-  | "PropertyUpdated";
+  | "PropertyUpdated"
+  | "TerminationRequest";
 
 const prisma = new PrismaClient();
 
@@ -60,9 +61,24 @@ export class NotificationService {
 
   async createNotification(notificationData: CreateNotificationData) {
     try {
+      // Prepare data for Prisma - ensure only one recipient is set
+      const prismaData: any = {
+        type: notificationData.type,
+        title: notificationData.title,
+        message: notificationData.message,
+        data: notificationData.data || {},
+      };
+
+      // Set only one recipient
+      if (notificationData.tenantCognitoId) {
+        prismaData.tenantCognitoId = notificationData.tenantCognitoId;
+      } else if (notificationData.managerCognitoId) {
+        prismaData.managerCognitoId = notificationData.managerCognitoId;
+      }
+
       // Create notification in database
       const notification = await prisma.notification.create({
-        data: notificationData,
+        data: prismaData,
         include: {
           tenant: true,
           manager: true,
@@ -259,6 +275,29 @@ export class NotificationService {
       message: `Payment of $${amount} received from ${tenantName}`,
       data: { leaseId, amount, tenantName },
       managerCognitoId,
+    });
+  }
+
+  async notifyPaymentOverdue(
+    leaseId: number,
+    amount: number,
+    dueDate: Date,
+    recipientCognitoId: string,
+    isManager: boolean = false
+  ) {
+    const title = isManager ? "Overdue Payment Alert" : "Payment Overdue";
+    const message = isManager
+      ? `Overdue payment of $${amount} from tenant (Due: ${dueDate.toLocaleDateString()})`
+      : `Your payment of $${amount} is overdue (Due: ${dueDate.toLocaleDateString()})`;
+
+    await this.createNotification({
+      type: "PaymentOverdue",
+      title,
+      message,
+      data: { leaseId, amount, dueDate },
+      ...(isManager
+        ? { managerCognitoId: recipientCognitoId }
+        : { tenantCognitoId: recipientCognitoId }),
     });
   }
 }

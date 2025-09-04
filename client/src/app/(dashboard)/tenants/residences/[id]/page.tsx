@@ -2,7 +2,7 @@
 
 import Header from "@/components/Header";
 import Loading from "@/components/Loading";
-import PropertyDetailTabs from "@/components/PropertyDetailTabs";
+import TenantResidenceDetail from "@/components/TenantResidenceDetail";
 import { useGetAuthUserQuery, useGetPropertyQuery } from "@/state/api";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
@@ -31,12 +31,7 @@ const ResidenceDetail = () => {
         <span>Back to Residences</span>
       </Link>
 
-      <Header
-        title={property?.name || "My Residence"}
-        subtitle="View your lease details and manage termination requests"
-      />
-
-      <PropertyDetailTabs propertyId={propertyId} userType="tenant" />
+      <TenantResidenceDetail />
     </div>
   );
 };

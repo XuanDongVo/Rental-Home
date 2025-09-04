@@ -37,6 +37,14 @@ export const getPropertyById = async (id: number) => {
       location: true,
       applications: true,
       leases: true,
+      manager: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          phoneNumber: true,
+        },
+      },
     },
   });
   return property;

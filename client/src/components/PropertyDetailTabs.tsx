@@ -17,6 +17,7 @@ import {
     useGetPropertyLeasesQuery,
 } from "@/state/api";
 import { Lease } from "@/types/prismaTypes";
+import TenantPaymentInterface from "./TenantPaymentInterface";
 import {
     ArrowDownToLine,
     Check,
@@ -207,8 +208,8 @@ const PropertyDetailTabs: React.FC<PropertyDetailTabsProps> = ({
                                                 <TableCell>
                                                     <span
                                                         className={`px-2 py-1 rounded-full text-xs font-semibold ${getCurrentMonthPaymentStatus(lease.id) === "Paid"
-                                                                ? "bg-green-100 text-green-800 border-green-300"
-                                                                : "bg-red-100 text-red-800 border-red-300"
+                                                            ? "bg-green-100 text-green-800 border-green-300"
+                                                            : "bg-red-100 text-red-800 border-red-300"
                                                             }`}
                                                     >
                                                         {getCurrentMonthPaymentStatus(lease.id) === "Paid" && (
@@ -445,73 +446,20 @@ const PropertyDetailTabs: React.FC<PropertyDetailTabsProps> = ({
                             )}
                         </div>
                     ) : (
-                        <div className="mt-8 bg-white rounded-xl shadow-md overflow-hidden p-6">
-                            <div className="flex justify-between items-center mb-6">
-                                <div>
-                                    <h2 className="text-2xl font-bold mb-1">Payment History</h2>
-                                    <p className="text-sm text-gray-500">
-                                        View your payment history and download receipts.
-                                    </p>
-                                </div>
-                                <Button className="flex items-center gap-2">
-                                    <Download className="w-4 h-4" />
-                                    Download All
-                                </Button>
-                            </div>
-
-                            <div className="overflow-x-auto">
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead>Payment Date</TableHead>
-                                            <TableHead>Amount</TableHead>
-                                            <TableHead>Status</TableHead>
-                                            <TableHead>Method</TableHead>
-                                            <TableHead>Action</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {payments?.map((payment) => (
-                                            <TableRow key={payment.id} className="h-16">
-                                                <TableCell>
-                                                    {new Date(payment.paymentDate).toLocaleDateString()}
-                                                </TableCell>
-                                                <TableCell className="font-medium">
-                                                    ${payment.amountPaid.toFixed(2)}
-                                                </TableCell>
-                                                <TableCell>
-                                                    <Badge
-                                                        className={
-                                                            payment.paymentStatus === "Paid"
-                                                                ? "bg-green-100 text-green-800"
-                                                                : payment.paymentStatus === "Pending"
-                                                                    ? "bg-yellow-100 text-yellow-800"
-                                                                    : "bg-red-100 text-red-800"
-                                                        }
-                                                    >
-                                                        {payment.paymentStatus === "Paid" && (
-                                                            <Check className="w-3 h-3 inline-block mr-1" />
-                                                        )}
-                                                        {payment.paymentStatus}
-                                                    </Badge>
-                                                </TableCell>
-                                                <TableCell>Credit Card</TableCell>
-                                                <TableCell>
-                                                    <Button variant="outline" size="sm">
-                                                        <ArrowDownToLine className="w-4 h-4 mr-1" />
-                                                        Download
-                                                    </Button>
-                                                </TableCell>
-                                            </TableRow>
-                                        ))}
-                                    </TableBody>
-                                </Table>
-                            </div>
-
-                            {(!payments || payments.length === 0) && (
+                        <div className="mt-8">
+                            {leases && leases.length > 0 ? (
+                                leases.map((lease) => (
+                                    <TenantPaymentInterface
+                                        key={lease.id}
+                                        leaseId={lease.id}
+                                        tenantName={lease.tenant?.firstName + ' ' + lease.tenant?.lastName || 'Unknown Tenant'}
+                                        propertyName={`Property #${propertyId}`}
+                                    />
+                                ))
+                            ) : (
                                 <div className="text-center py-8">
                                     <DollarSign className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                                    <p className="text-gray-500">No payment history found</p>
+                                    <p className="text-gray-500">No active lease found for payment</p>
                                 </div>
                             )}
                         </div>

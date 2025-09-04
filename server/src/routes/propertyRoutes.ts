@@ -6,6 +6,7 @@ import {
   deleteProperty,
   updateProperty,
   getLeaseByPropertyId,
+  getCurrentMonthPaymentStatusByProperty,
 } from "../controllers/propertyControllers";
 import {
   getCurrentLeaseByProperty,
@@ -43,7 +44,7 @@ router.put(
 // Manager property tab endpoints
 router.get(
   "/:propertyId/current-lease",
-  authMiddleware(["manager"]),
+  authMiddleware(["manager", "tenant"]),
   getCurrentLeaseByProperty
 );
 
@@ -82,4 +83,24 @@ route.get(
   authMiddleware(["manager", "tenant"]),
   getLeaseByPropertyId
 );
+
+// Tenant specific routes
+router.get(
+  "/:propertyId/payments",
+  authMiddleware(["manager", "tenant"]),
+  getPaymentHistoryByProperty
+);
+
+router.get(
+  "/:propertyId/current-month-payment",
+  authMiddleware(["manager", "tenant"]),
+  getCurrentMonthPaymentStatusByProperty
+);
+
+router.get(
+  "/:propertyId/tenant-lease",
+  authMiddleware(["tenant"]),
+  getCurrentLeaseByProperty
+);
+
 export default router;

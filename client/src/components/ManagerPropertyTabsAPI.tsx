@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CalendarDays, Phone, Mail, User, Home, DollarSign } from "lucide-react";
+import PaymentManagement from "./PaymentManagement";
 import {
     useGetPropertySummaryQuery,
     useGetLeaseHistoryByPropertyQuery,
@@ -23,6 +24,8 @@ export default function ManagerPropertyTabsAPI({ propertyId }: ManagerPropertyTa
         isLoading: summaryLoading,
         error: summaryError,
     } = useGetPropertySummaryQuery(propertyId);
+
+    console.log("Property Summary:", summary);
 
     const {
         data: leaseHistory = [],
@@ -85,10 +88,11 @@ export default function ManagerPropertyTabsAPI({ propertyId }: ManagerPropertyTa
     return (
         <div className="w-full">
             <Tabs defaultValue="current-tenant" className="w-full">
-                <TabsList className="grid w-full grid-cols-3">
+                <TabsList className="grid w-full grid-cols-4">
                     <TabsTrigger value="current-tenant">Current Tenant</TabsTrigger>
                     <TabsTrigger value="lease-history">Lease History</TabsTrigger>
                     <TabsTrigger value="payment-history">Payment History</TabsTrigger>
+                    <TabsTrigger value="payment-management">Payment Management</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="current-tenant" className="space-y-4">
@@ -308,6 +312,10 @@ export default function ManagerPropertyTabsAPI({ propertyId }: ManagerPropertyTa
                             )}
                         </CardContent>
                     </Card>
+                </TabsContent>
+
+                <TabsContent value="payment-management" className="space-y-4">
+                    <PaymentManagement propertyId={propertyId} />
                 </TabsContent>
             </Tabs>
         </div>

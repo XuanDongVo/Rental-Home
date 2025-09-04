@@ -91,12 +91,41 @@ export const createApplicationWithLease = async (data: {
   });
 };
 
+export const createApplication = async (data: {
+  applicationDate: Date;
+  status: ApplicationStatus;
+  name: string;
+  email: string;
+  phoneNumber: string;
+  message: string;
+  propertyId: number;
+  tenantCognitoId: string;
+}) => {
+  return await prisma.application.create({
+    data: {
+      applicationDate: data.applicationDate,
+      status: data.status,
+      name: data.name,
+      email: data.email,
+      phoneNumber: data.phoneNumber,
+      message: data.message,
+      property: { connect: { id: data.propertyId } },
+      tenant: { connect: { cognitoId: data.tenantCognitoId } },
+    },
+    include: {
+      property: true,
+      tenant: true,
+    },
+  });
+};
+
 export const findApplicationById = async (id: number) => {
   return await prisma.application.findUnique({
     where: { id },
     include: {
       property: true,
       tenant: true,
+      lease: true,
     },
   });
 };

@@ -204,10 +204,10 @@ model TerminationRequest {
 model Payment {
   id            Int           @id @default(autoincrement())
   amountDue     Float
-  amountPaid    Float
+  amountPaid    Float         @default(0)
   dueDate       DateTime
-  paymentDate   DateTime
-  paymentStatus PaymentStatus
+  paymentDate   DateTime?
+  paymentStatus PaymentStatus @default(Pending)
   leaseId       Int
 
   lease Lease @relation(fields: [leaseId], references: [id])

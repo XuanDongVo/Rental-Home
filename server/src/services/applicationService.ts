@@ -1,4 +1,5 @@
 import * as applicationRepository from "../repositories/applicationRepository";
+import * as paymentService from "./paymentService";
 import { NotificationService } from "./NotificationService";
 
 const notificationService = new NotificationService();
@@ -68,7 +69,7 @@ export const createApplication = async (data: any) => {
     throw { status: 404, message: "Property not found" };
   }
 
-  const application = await applicationRepository.createApplicationWithLease({
+  const application = await applicationRepository.createApplication({
     applicationDate: new Date(applicationDate),
     status,
     name,
@@ -77,12 +78,6 @@ export const createApplication = async (data: any) => {
     message,
     propertyId,
     tenantCognitoId,
-    leaseData: {
-      startDate: new Date(),
-      endDate: new Date(new Date().setFullYear(new Date().getFullYear() + 1)),
-      rent: property.pricePerMonth,
-      deposit: property.securityDeposit,
-    },
   });
 
   // Send notification to property manager
@@ -105,23 +100,32 @@ export const updateApplicationStatus = async (id: number, status: string) => {
   let updatedApplication;
 
   if (status === "Approved") {
-    const newLease = await applicationRepository.createLease({
-      startDate: new Date(),
-      endDate: new Date(new Date().setFullYear(new Date().getFullYear() + 1)),
-      rent: application.property.pricePerMonth,
-      deposit: application.property.securityDeposit,
-      propertyId: application.propertyId,
-      tenantCognitoId: application.tenantCognitoId,
-    });
+    // Kiểm tra xem đã có lease chưa, nếu chưa thì tạo mới
+    let leaseId = application.leaseId;
 
-    await applicationRepository.connectTenantToProperty(
-      application.propertyId,
-      application.tenantCognitoId
-    );
+    if (!leaseId) {
+      const newLease = await applicationRepository.createLease({
+        startDate: new Date(),
+        endDate: new Date(new Date().setFullYear(new Date().getFullYear() + 1)),
+        rent: application.property.pricePerMonth,
+        deposit: application.property.securityDeposit,
+        propertyId: application.propertyId,
+        tenantCognitoId: application.tenantCognitoId,
+      });
+      leaseId = newLease.id;
+
+      // Tạo payment cho tháng hiện tại only
+      await paymentService.createCurrentMonthPayment(newLease.id);
+
+      await applicationRepository.connectTenantToProperty(
+        application.propertyId,
+        application.tenantCognitoId
+      );
+    }
 
     updatedApplication = await applicationRepository.updateApplication(id, {
       status,
-      leaseId: newLease.id,
+      leaseId: leaseId,
     });
   } else {
     updatedApplication = await applicationRepository.updateApplication(id, {
