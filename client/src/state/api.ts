@@ -432,6 +432,123 @@ export const api = createApi({
         });
       },
     }),
+
+    // Manager Property Tabs endpoints
+    getPropertySummary: build.query<
+      {
+        currentLease: Lease | null;
+        currentPaymentStatus: string;
+        totalLeases: number;
+        totalRevenue: number;
+        isVacant: boolean;
+      },
+      number
+    >({
+      query: (propertyId) => `properties/${propertyId}/summary`,
+      providesTags: (result, error, propertyId) => [
+        { type: "PropertyDetails", id: propertyId },
+        { type: "Leases", id: "LIST" },
+      ],
+      async onQueryStarted(_, { queryFulfilled }) {
+        await withToast(queryFulfilled, {
+          error: "Failed to fetch property summary.",
+        });
+      },
+    }),
+
+    getCurrentLeaseByProperty: build.query<Lease | null, number>({
+      query: (propertyId) => `properties/${propertyId}/current-lease`,
+      providesTags: (result, error, propertyId) => [
+        { type: "Leases", id: result?.id },
+        { type: "PropertyDetails", id: propertyId },
+      ],
+      async onQueryStarted(_, { queryFulfilled }) {
+        await withToast(queryFulfilled, {
+          error: "Failed to fetch current lease.",
+        });
+      },
+    }),
+
+    getLeaseHistoryByProperty: build.query<Lease[], number>({
+      query: (propertyId) => `properties/${propertyId}/lease-history`,
+      providesTags: (result, error, propertyId) => [
+        { type: "Leases", id: "LIST" },
+        { type: "PropertyDetails", id: propertyId },
+      ],
+      async onQueryStarted(_, { queryFulfilled }) {
+        await withToast(queryFulfilled, {
+          error: "Failed to fetch lease history.",
+        });
+      },
+    }),
+
+    getPaymentHistoryByProperty: build.query<
+      Array<{
+        id: number;
+        amountDue: number;
+        amountPaid: number;
+        dueDate: string;
+        paymentDate?: string;
+        paymentStatus: "Paid" | "Not Paid" | "Late" | "Pending";
+        lease: {
+          tenant: {
+            id: number;
+            name: string;
+            email: string;
+          };
+        };
+      }>,
+      number
+    >({
+      query: (propertyId) => `properties/${propertyId}/payment-history`,
+      providesTags: (result, error, propertyId) => [
+        { type: "Payments", id: "LIST" },
+        { type: "PropertyDetails", id: propertyId },
+      ],
+      async onQueryStarted(_, { queryFulfilled }) {
+        await withToast(queryFulfilled, {
+          error: "Failed to fetch payment history.",
+        });
+      },
+    }),
+
+    getPreviousTenantsForProperty: build.query<
+      Lease[],
+      { propertyId: number; limit?: number }
+    >({
+      query: ({ propertyId, limit = 5 }) =>
+        `properties/${propertyId}/previous-tenants?limit=${limit}`,
+      providesTags: (result, error, { propertyId }) => [
+        { type: "Leases", id: "LIST" },
+        { type: "PropertyDetails", id: propertyId },
+      ],
+      async onQueryStarted(_, { queryFulfilled }) {
+        await withToast(queryFulfilled, {
+          error: "Failed to fetch previous tenants.",
+        });
+      },
+    }),
+
+    getCurrentMonthPaymentStatus: build.query<
+      {
+        paymentStatus: string;
+        amountDue: number;
+        amountPaid: number;
+        dueDate: string | null;
+        paymentDate: string | null;
+      },
+      number
+    >({
+      query: (leaseId) => `lease/${leaseId}/payment-status`,
+      providesTags: (result, error, leaseId) => [
+        { type: "Payments", id: leaseId },
+      ],
+      async onQueryStarted(_, { queryFulfilled }) {
+        await withToast(queryFulfilled, {
+          error: "Failed to fetch payment status.",
+        });
+      },
+    }),
   }),
 });
 
@@ -455,4 +572,11 @@ export const {
   useGetApplicationsQuery,
   useUpdateApplicationStatusMutation,
   useCreateApplicationMutation,
+  // Manager Property Tabs hooks
+  useGetPropertySummaryQuery,
+  useGetCurrentLeaseByPropertyQuery,
+  useGetLeaseHistoryByPropertyQuery,
+  useGetPaymentHistoryByPropertyQuery,
+  useGetPreviousTenantsForPropertyQuery,
+  useGetCurrentMonthPaymentStatusQuery,
 } = api;

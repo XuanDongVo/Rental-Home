@@ -37,11 +37,11 @@ const AppSidebar = ({ userType }: AppSidebarProps) => {
           label: "Applications",
           href: "/managers/applications",
         },
-        {
-          icon: ScrollText,
-          label: "Leases",
-          href: "/managers/leases"
-        },
+        // {
+        //   icon: ScrollText,
+        //   label: "Leases",
+        //   href: "/managers/leases"
+        // },
         {
           icon: AlertTriangle,
           label: "Termination Requests",
@@ -87,7 +87,7 @@ const AppSidebar = ({ userType }: AppSidebarProps) => {
                     className="hover:bg-gray-100 p-2 rounded-md"
                     onClick={() => toggleSidebar()}
                   >
-                    <X className="h-6 w-6 text-gray-600" />
+                    <X className="h-7 w-7 text-gray-600" />
                   </button>
                 </>
               ) : (

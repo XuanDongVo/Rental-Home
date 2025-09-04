@@ -56,8 +56,8 @@ const mockLeases = [
     {
         id: 1,
         tenantId: 101,
-        startDate: "2024-01-01",
-        endDate: "2024-12-31",
+        startDate: "2025-01-01",
+        endDate: "2025-12-31",
         rent: 1500,
         tenant: {
             name: "John Smith",
@@ -223,8 +223,8 @@ const ManagerPropertyTabs: React.FC<ManagerPropertyTabsProps> = ({ propertyId })
                                             <span className="text-sm text-gray-500">Payment Status</span>
                                         </div>
                                         <p className={`font-semibold ${getCurrentMonthPaymentStatus(activeLease.id) === "Paid"
-                                                ? "text-green-600"
-                                                : "text-red-600"
+                                            ? "text-green-600"
+                                            : "text-red-600"
                                             }`}>
                                             {getCurrentMonthPaymentStatus(activeLease.id)}
                                         </p>
@@ -256,6 +256,57 @@ const ManagerPropertyTabs: React.FC<ManagerPropertyTabsProps> = ({ propertyId })
                                 </Button>
                             </div>
                         )}
+
+                        {/* Previous Tenants Quick Reference */}
+                        <div className="mt-8 p-6 bg-gray-50 rounded-lg border border-gray-200">
+                            <div className="flex justify-between items-center mb-4">
+                                <div>
+                                    <h3 className="text-lg font-semibold text-gray-800">Previous Tenants</h3>
+                                    <p className="text-sm text-gray-500">Quick reference to past tenants</p>
+                                </div>
+                                <Button variant="outline" size="sm">
+                                    View Full History →
+                                </Button>
+                            </div>
+
+                            <div className="space-y-3">
+                                {leaseHistory.filter(lease => activeLease?.id !== lease.id).map((lease) => (
+                                    <div key={lease.id} className="bg-white p-4 rounded-lg border hover:shadow-md transition-shadow">
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center">
+                                                    <User className="w-5 h-5 text-gray-600" />
+                                                </div>
+                                                <div>
+                                                    <h4 className="font-medium text-gray-900">{lease.tenant?.name}</h4>
+                                                    <p className="text-sm text-gray-500">{lease.tenant?.email}</p>
+                                                </div>
+                                            </div>
+                                            <div className="text-right">
+                                                <Badge className={getLeaseStatusColor(lease)}>
+                                                    {getLeaseStatusText(lease)}
+                                                </Badge>
+                                                <p className="text-xs text-gray-500 mt-1">
+                                                    {new Date(lease.startDate).getFullYear()} - {new Date(lease.endDate).getFullYear()}
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <div className="mt-3 flex justify-between items-center text-sm border-t pt-3">
+                                            <span className="text-gray-600">
+                                                Duration: {Math.ceil((new Date(lease.endDate).getTime() - new Date(lease.startDate).getTime()) / (1000 * 60 * 60 * 24))} days
+                                            </span>
+                                            <span className="font-medium text-green-600">${lease.rent}/month</span>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+
+                            {leaseHistory.filter(lease => activeLease?.id !== lease.id).length === 0 && (
+                                <div className="text-center py-4">
+                                    <p className="text-gray-500 text-sm">No previous tenants for this property</p>
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </TabsContent>
 

@@ -7,6 +7,14 @@ import {
   updateProperty,
   getLeaseByPropertyId,
 } from "../controllers/propertyControllers";
+import {
+  getCurrentLeaseByProperty,
+  getLeaseHistoryByProperty,
+  getPaymentHistoryByProperty,
+  getCurrentMonthPaymentStatus,
+  getPreviousTenantsForProperty,
+  getPropertyLeaseSummary,
+} from "../controllers/leaseControllers";
 import multer from "multer";
 import { authMiddleware } from "../middleware/authMiddleware";
 import route from "./tenantRoutes";
@@ -30,6 +38,43 @@ router.put(
   authMiddleware(["manager"]),
   upload.array("photos"),
   updateProperty
+);
+
+// Manager property tab endpoints
+router.get(
+  "/:propertyId/current-lease",
+  authMiddleware(["manager"]),
+  getCurrentLeaseByProperty
+);
+
+router.get(
+  "/:propertyId/lease-history",
+  authMiddleware(["manager"]),
+  getLeaseHistoryByProperty
+);
+
+router.get(
+  "/:propertyId/payment-history",
+  authMiddleware(["manager"]),
+  getPaymentHistoryByProperty
+);
+
+router.get(
+  "/:propertyId/previous-tenants",
+  authMiddleware(["manager"]),
+  getPreviousTenantsForProperty
+);
+
+router.get(
+  "/:propertyId/summary",
+  authMiddleware(["manager"]),
+  getPropertyLeaseSummary
+);
+
+router.get(
+  "/lease/:leaseId/payment-status",
+  authMiddleware(["manager", "tenant"]),
+  getCurrentMonthPaymentStatus
 );
 
 route.get(
