@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Loading from "@/components/Loading";
 import TerminateLeaseModal from "@/components/TerminateLeaseModal";
 import TenantPaymentInterface from "@/components/TenantPaymentInterface";
@@ -247,9 +248,11 @@ const ResidenceCard = ({
             {/* Header */}
             <div className="flex gap-5">
                 <div className="w-64 h-32 object-cover bg-slate-500 rounded-xl overflow-hidden flex items-center justify-center">
-                    <img
-                        src={property.photoUrls?.[0] || "/placeholder-property.jpg"}
+                    <Image
+                        src={property.photoUrls?.[0] || "/placeholder.jpg"}
                         alt={property.name}
+                        width={256}
+                        height={128}
                         className="w-full h-full object-cover"
                     />
                 </div>
@@ -537,7 +540,7 @@ const Residence = () => {
                         isOpen={isTerminateModalOpen}
                         onClose={handleTerminateModalClose}
                         lease={lease}
-                        property={property}
+                    // property={property}
                     />
                 )}
             </div>

@@ -1,4 +1,3 @@
-import { getLeaseByPropertyId } from "./../../../server/src/services/leaseService";
 import { cleanParams, createNewUserInDatabase, withToast } from "@/lib/utils";
 import {
   Application,

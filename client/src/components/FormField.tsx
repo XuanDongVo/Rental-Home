@@ -136,7 +136,7 @@ export const CustomFormField: React.FC<FormFieldProps> = ({
         const initialFiles = currentPhotos ? currentPhotos.map((url, index) => ({
           source: url,
           options: {
-            type: 'local'
+            type: 'local' as const
           }
         })) : [];
 
