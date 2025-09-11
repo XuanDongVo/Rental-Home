@@ -13,7 +13,8 @@ export type NotificationType =
   | "LeaseExpiring"
   | "NewMessage"
   | "PropertyUpdated"
-  | "TerminationRequest";
+  | "TerminationRequest"
+  | "TerminationResponse";
 
 const prisma = new PrismaClient();
 

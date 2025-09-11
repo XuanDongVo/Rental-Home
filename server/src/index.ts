@@ -21,6 +21,8 @@ import propertyRoutes from "./routes/propertyRoutes";
 import applicationRoutes from "./routes/applicationRoutes";
 import notificationRoutes from "./routes/notificationRoutes";
 import paymentRoutes from "./routes/paymentRoutes";
+import terminationPolicyRoutes from "./routes/terminationPolicyRoutes";
+import terminationRequestRoutes from "./routes/terminationRequestRoutes";
 import { initializeScheduledTasks } from "./services/scheduledTasks";
 
 /* CONFIGURATIONS */
@@ -58,6 +60,8 @@ app.use("/properties", propertyRoutes);
 // app.use("/leases", leaseRoutes);
 app.use("/notifications", notificationRoutes);
 app.use("/payments", paymentRoutes);
+app.use("/termination-policies", terminationPolicyRoutes);
+app.use("/termination-requests", terminationRequestRoutes);
 app.use("/tenants", authMiddleware(["tenant"]), tenantRoutes);
 app.use("/managers", authMiddleware(["manager"]), managerRoutes);
 

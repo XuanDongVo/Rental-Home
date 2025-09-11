@@ -98,6 +98,44 @@ declare global {
     children: React.ReactNode;
   }
 
+  interface TerminationPolicyRule {
+    id: string;
+    minDaysNotice: number;
+    maxDaysNotice: number;
+    penaltyPercentage: number;
+    description: string;
+  }
+
+  interface TerminationPolicy {
+    id: string;
+    propertyId: string;
+    managerId: string;
+    name: string;
+    description?: string;
+    rules: TerminationPolicyRule[];
+    allowEmergencyWaiver: boolean;
+    emergencyCategories: string[];
+    minimumNoticeRequired: number;
+    managerResponseTimeLimit: number;
+    isActive: boolean;
+    createdAt: Date;
+    updatedAt: Date;
+  }
+
+  interface TerminationPolicyFormProps {
+    policy?: TerminationPolicy;
+    propertyId: string;
+    onSave: (policy: Partial<TerminationPolicy>) => void;
+    onCancel: () => void;
+  }
+
+  interface TerminationPolicyListProps {
+    propertyId: string;
+    policies: TerminationPolicy[];
+    onEdit: (policy: TerminationPolicy) => void;
+    onDelete: (policyId: string) => void;
+  }
+
   interface CardProps {
     property: Property;
     isFavorite: boolean;
@@ -151,6 +189,32 @@ declare global {
     cancelLabel?: string;
     showFooter?: boolean;
     loading?: boolean;
+  }
+
+  interface TerminationPolicy {
+    id: string;
+    propertyId: string;
+    isActive: boolean;
+    minimumNoticeRequired: number;
+    rules: TerminationPolicyRule[];
+    allowEmergencyWaiver: boolean;
+    emergencyCategories: string[];
+    gracePeriodDays: number;
+    createdAt: string;
+    updatedAt: string;
+  }
+
+  interface TerminationCalculation {
+    isValid: boolean;
+    errors: string[];
+    warnings: string[];
+    appliedPolicy: TerminationPolicy | null;
+    appliedRule: TerminationPolicyRule | null;
+    penaltyAmount: number;
+    penaltyPercentage: number;
+    daysNotice: number;
+    canWaiveForEmergency: boolean;
+    emergencyCategories: string[];
   }
 }
 

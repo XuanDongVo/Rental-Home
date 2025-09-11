@@ -448,7 +448,15 @@ const Residence = () => {
     );
 
     const handleTerminateLease = () => {
-        setIsTerminateModalOpen(true);
+        // Navigate to enhanced termination request page
+        if (currentLease && property) {
+            const params = new URLSearchParams({
+                leaseId: currentLease.id.toString(),
+                propertyId: property.id.toString(),
+                monthlyRent: currentLease.rent.toString(),
+            });
+            window.location.href = `/tenants/termination-request?${params.toString()}`;
+        }
     };
 
     const handleTerminateModalClose = () => {
@@ -534,15 +542,7 @@ const Residence = () => {
 
                 <BillingHistory payments={mockPayments} />
 
-                {/* Terminate Lease Modal */}
-                {isTerminateModalOpen && (
-                    <TerminateLeaseModal
-                        isOpen={isTerminateModalOpen}
-                        onClose={handleTerminateModalClose}
-                        lease={lease}
-                    // property={property}
-                    />
-                )}
+                {/* Enhanced Termination Request - handled by navigation */}
             </div>
         </div>
     );

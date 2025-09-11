@@ -88,11 +88,12 @@ export default function ManagerPropertyTabsAPI({ propertyId }: ManagerPropertyTa
     return (
         <div className="w-full">
             <Tabs defaultValue="current-tenant" className="w-full">
-                <TabsList className="grid w-full grid-cols-4">
+                <TabsList className="grid w-full grid-cols-5">
                     <TabsTrigger value="current-tenant">Current Tenant</TabsTrigger>
                     <TabsTrigger value="lease-history">Lease History</TabsTrigger>
                     <TabsTrigger value="payment-history">Payment History</TabsTrigger>
                     <TabsTrigger value="payment-management">Payment Management</TabsTrigger>
+                    <TabsTrigger value="termination-policies">Termination Policies</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="current-tenant" className="space-y-4">
@@ -316,6 +317,26 @@ export default function ManagerPropertyTabsAPI({ propertyId }: ManagerPropertyTa
 
                 <TabsContent value="payment-management" className="space-y-4">
                     <PaymentManagement propertyId={propertyId} />
+                </TabsContent>
+
+                <TabsContent value="termination-policies" className="space-y-4">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Termination Policies Management</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-center space-y-4">
+                                <p className="text-muted-foreground">
+                                    Manage termination conditions and policies for this property.
+                                </p>
+                                <Button asChild>
+                                    <a href={`/managers/properties/${propertyId}/termination-policies`}>
+                                        Open Termination Policies Manager
+                                    </a>
+                                </Button>
+                            </div>
+                        </CardContent>
+                    </Card>
                 </TabsContent>
             </Tabs>
         </div>

@@ -3,7 +3,9 @@ import { S3Client } from "@aws-sdk/client-s3";
 import { Upload } from "@aws-sdk/lib-storage";
 import axios from "axios";
 import * as propertyRepository from "../repositories/propertyRepository";
-import { Prisma } from "@prisma/client";
+import { Prisma, PrismaClient } from "@prisma/client";
+
+const prisma = new PrismaClient();
 
 const s3Client = new S3Client({
   credentials: {
@@ -12,6 +14,74 @@ const s3Client = new S3Client({
   },
   region: process.env.AWS_REGION,
 });
+
+// Default termination policy rules
+const DEFAULT_POLICY_RULES = [
+  {
+    minDaysNotice: 0,
+    maxDaysNotice: 29,
+    penaltyPercentage: 100,
+    description: "Less than 30 days notice",
+  },
+  {
+    minDaysNotice: 30,
+    maxDaysNotice: 59,
+    penaltyPercentage: 50,
+    description: "30-59 days notice",
+  },
+  {
+    minDaysNotice: 60,
+    maxDaysNotice: 999,
+    penaltyPercentage: 0,
+    description: "60+ days notice (no penalty)",
+  },
+];
+
+const DEFAULT_WAIVER_CONDITIONS = [
+  "Medical emergency",
+  "Job relocation (with proof)",
+  "Military deployment",
+  "Domestic violence",
+  "Property uninhabitable",
+];
+
+// Create default termination policy for new property
+const createDefaultTerminationPolicy = async (
+  propertyId: number,
+  managerCognitoId: string
+) => {
+  try {
+    // Get manager ID
+    const manager = await prisma.manager.findUnique({
+      where: { cognitoId: managerCognitoId },
+    });
+
+    if (!manager) {
+      console.error("Manager not found for termination policy creation");
+      return;
+    }
+
+    // Create default termination policy
+    await prisma.terminationPolicy.create({
+      data: {
+        propertyId,
+        isActive: true,
+        minimumNoticedays: 30,
+        penaltyRules: DEFAULT_POLICY_RULES,
+        allowWaiverConditions: DEFAULT_WAIVER_CONDITIONS,
+        gracePeriodDays: 60,
+        createdById: manager.id,
+      },
+    });
+
+    console.log(
+      `Default termination policy created for property ${propertyId}`
+    );
+  } catch (error) {
+    console.error("Error creating default termination policy:", error);
+    // Don't throw error to avoid breaking property creation
+  }
+};
 
 export const getProperties = async (query: any) => {
   const {
@@ -229,7 +299,7 @@ export const createProperty = async (
     latitude
   );
 
-  return await propertyRepository.createProperty({
+  const newProperty = await propertyRepository.createProperty({
     ...propertyData,
     photoUrls,
     locationId: location.id,
@@ -251,6 +321,11 @@ export const createProperty = async (
     baths: parseFloat(propertyData.baths),
     squareFeet: parseInt(propertyData.squareFeet),
   });
+
+  // Create default termination policy for the new property
+  await createDefaultTerminationPolicy(newProperty.id, managerCognitoId);
+
+  return newProperty;
 };
 
 export const deleteProperty = async (id: number) => {
