@@ -22,6 +22,10 @@ import applicationRoutes from "./routes/applicationRoutes";
 import notificationRoutes from "./routes/notificationRoutes";
 import paymentRoutes from "./routes/paymentRoutes";
 import { initializeScheduledTasks } from "./services/scheduledTasks";
+import chatRoutes from "./routes/chatRoutes";
+import { createServer } from "http";
+import { Server as SocketIOServer, Socket } from "socket.io";
+import prisma from "./lib/prisma";
 
 /* CONFIGURATIONS */
 dotenv.config();
@@ -60,12 +64,42 @@ app.use("/notifications", notificationRoutes);
 app.use("/payments", paymentRoutes);
 app.use("/tenants", authMiddleware(["tenant"]), tenantRoutes);
 app.use("/managers", authMiddleware(["manager"]), managerRoutes);
+app.use("/chat", chatRoutes);
 
-/* SERVER */
+/* SERVER + SOCKET.IO */
 const port = Number(process.env.PORT) || 3002;
-app.listen(port, "0.0.0.0", () => {
-  console.log(`Server running on port ${port}`);
+const httpServer = createServer(app);
+const io = new SocketIOServer(httpServer, {
+  cors: {
+    origin: process.env.CORS_ORIGIN || "http://localhost:3000",
+    credentials: true,
+  },
+});
 
-  // Initialize scheduled tasks after server starts
+io.on("connection", (socket: Socket) => {
+  // client should emit 'join' with their userId (cognitoId)
+  socket.on("join", (userId: string) => {
+    if (userId) socket.join(userId);
+  });
+
+  socket.on("chat:send", async (data: { senderId: string; receiverId: string; content: string }) => {
+    try {
+      const saved = await prisma.message.create({
+        data: {
+          senderId: data.senderId,
+          receiverId: data.receiverId,
+          content: data.content,
+        },
+      });
+      io.to(data.receiverId).emit("chat:receive", saved);
+      io.to(data.senderId).emit("chat:receive", saved);
+    } catch (e) {
+      // swallow
+    }
+  });
+});
+
+httpServer.listen(port, "0.0.0.0", () => {
+  console.log(`Server running on port ${port}`);
   initializeScheduledTasks();
 });
