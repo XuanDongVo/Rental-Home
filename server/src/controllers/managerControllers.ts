@@ -4,6 +4,28 @@ import { wktToGeoJSON } from "@terraformer/wkt";
 
 const prisma = new PrismaClient();
 
+export const getAllManagers = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const managers = await prisma.manager.findMany({
+      select: {
+        id: true,
+        cognitoId: true,
+        name: true,
+        email: true,
+        phoneNumber: true,
+      },
+    });
+    res.json(managers);
+  } catch (error: any) {
+    res
+      .status(500)
+      .json({ message: `Error retrieving managers: ${error.message}` });
+  }
+};
+
 export const getManager = async (
   req: Request,
   res: Response

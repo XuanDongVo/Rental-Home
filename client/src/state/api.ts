@@ -1,4 +1,3 @@
-import { getLeaseByPropertyId } from "./../../../server/src/services/leaseService";
 import { cleanParams, createNewUserInDatabase, withToast } from "@/lib/utils";
 import {
   Application,
@@ -33,6 +32,7 @@ export const api = createApi({
     "Leases",
     "Payments",
     "Applications",
+    "TerminationPolicies",
   ],
   endpoints: (build) => ({
     getAuthUser: build.query<User, void>({
@@ -705,17 +705,137 @@ export const api = createApi({
     // Chat: fetch one user's profile by cognitoId
     getChatUser: build.query<{ cognitoId: string; name: string; email: string; type: string } | null, string>({
       query: (cognitoId) => `chat/user/${encodeURIComponent(cognitoId)}`,
+
+    // Termination Policy endpoints
+    getTerminationPolicies: build.query<
+      any[],
+      { propertyId: string; active?: boolean }
+    >({
+      query: ({ propertyId, active }) => {
+        const params = new URLSearchParams();
+        params.append("propertyId", propertyId);
+        if (active !== undefined) {
+          params.append("active", active.toString());
+        }
+        return `termination-policies?${params.toString()}`;
+      },
+      providesTags: (result, error, { propertyId }) => [
+        { type: "TerminationPolicies", id: `property-${propertyId}` },
+        { type: "TerminationPolicies", id: "LIST" },
+      ],
+    }),
+
+    getTerminationPolicy: build.query<any, string>({
+      query: (id) => `termination-policies/${id}`,
+      providesTags: (result, error, id) => [
+        { type: "TerminationPolicies", id },
+      ],
+    }),
+
+    createTerminationPolicy: build.mutation<
+      any,
+      {
+        propertyId: string;
+        minimumNoticeRequired: number;
+        rules: any[];
+        allowEmergencyWaiver?: boolean;
+        emergencyCategories?: string[];
+        gracePeriodDays?: number;
+      }
+    >({
+      query: (body) => ({
+        url: "termination-policies",
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: (result, error, { propertyId }) => [
+        { type: "TerminationPolicies", id: `property-${propertyId}` },
+        { type: "TerminationPolicies", id: "LIST" },
+      ],
+      async onQueryStarted(_, { queryFulfilled }) {
+        await withToast(queryFulfilled, {
+          success: "Termination policy created successfully!",
+          error: "Failed to create termination policy.",
+        });
+      },
+    }),
+
+    updateTerminationPolicy: build.mutation<
+      any,
+      {
+        id: string;
+        minimumNoticeRequired?: number;
+        rules?: any[];
+        allowEmergencyWaiver?: boolean;
+        emergencyCategories?: string[];
+        gracePeriodDays?: number;
+        isActive?: boolean;
+      }
+    >({
+      query: ({ id, ...body }) => ({
+        url: `termination-policies/${id}`,
+        method: "PUT",
+        body,
+      }),
+      invalidatesTags: (result, error, { id }) => [
+        { type: "TerminationPolicies", id },
+        { type: "TerminationPolicies", id: "LIST" },
+      ],
+      async onQueryStarted(_, { queryFulfilled }) {
+        await withToast(queryFulfilled, {
+          success: "Termination policy updated successfully!",
+          error: "Failed to update termination policy.",
+        });
+      },
+    }),
+
+    deleteTerminationPolicy: build.mutation<any, string>({
+      query: (id) => ({
+        url: `termination-policies/${id}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: (result, error, id) => [
+        { type: "TerminationPolicies", id },
+        { type: "TerminationPolicies", id: "LIST" },
+      ],
+      async onQueryStarted(_, { queryFulfilled }) {
+        await withToast(queryFulfilled, {
+          success: "Termination policy deleted successfully!",
+          error: "Failed to delete termination policy.",
+        });
+      },
+    }),
+
+    calculateTerminationPenalty: build.mutation<
+      any,
+      {
+        propertyId: string;
+        requestedEndDate: string;
+        monthlyRent: number;
+      }
+    >({
+      query: (body) => ({
+        url: "termination-policies/calculate",
+        method: "POST",
+        body,
+      }),
+
     }),
 
     // Termination Request endpoints
     submitTerminationRequest: build.mutation<
       any,
-      { leaseId: number; reason: string; tenantCognitoId: string }
+      {
+        leaseId: number;
+        reason: string;
+        requestedEndDate: string;
+        tenantCognitoId?: string;
+      }
     >({
-      query: ({ leaseId, reason, tenantCognitoId }) => ({
+      query: ({ leaseId, reason, requestedEndDate, tenantCognitoId }) => ({
         url: "termination-requests",
         method: "POST",
-        body: { leaseId, reason, tenantCognitoId },
+        body: { leaseId, reason, requestedEndDate, tenantCognitoId },
       }),
       invalidatesTags: [{ type: "Leases", id: "LIST" }],
       async onQueryStarted(_, { queryFulfilled }) {
@@ -763,11 +883,21 @@ export const {
   useGetCurrentMonthPaymentStatusByPropertyQuery,
   useGetOverduePaymentsQuery,
   useCheckOverduePaymentsMutation,
+
   // Chat hooks
   useSearchChatUsersQuery,
   useGetChatHistoryQuery,
   useGetConversationsQuery,
   useGetChatUserQuery,
+
+  // Termination Policy hooks
+  useGetTerminationPoliciesQuery,
+  useGetTerminationPolicyQuery,
+  useCreateTerminationPolicyMutation,
+  useUpdateTerminationPolicyMutation,
+  useDeleteTerminationPolicyMutation,
+  useCalculateTerminationPenaltyMutation,
+
   // Termination Request hooks
   useSubmitTerminationRequestMutation,
 } = api;

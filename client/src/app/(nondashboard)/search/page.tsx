@@ -36,7 +36,7 @@ const SearchPage = () => {
 
     const cleanedFilters = cleanParams(initialFilters);
     dispatch(setFilters(cleanedFilters));
-  }, []);
+  }, [dispatch, searchParams]);
 
   return (
     <div
@@ -49,8 +49,8 @@ const SearchPage = () => {
       <div className="flex justify-between flex-1 overflow-hidden gap-3 mb-5">
         <div
           className={`h-full overflow-auto transition-all duration-300 ease-in-out ${isFiltersFullOpen
-              ? "w-3/12 opacity-100 visible"
-              : "w-0 opacity-0 invisible"
+            ? "w-3/12 opacity-100 visible"
+            : "w-0 opacity-0 invisible"
             }`}
         >
           <FiltersFull />

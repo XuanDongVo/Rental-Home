@@ -102,12 +102,13 @@ model Property {
   isDeleted         Boolean      @default(false)
   deletedAt         DateTime?
 
-  location     Location      @relation(fields: [locationId], references: [id])
-  manager      Manager       @relation(fields: [managerCognitoId], references: [cognitoId])
-  leases       Lease[]
-  applications Application[]
-  favoritedBy  Tenant[]      @relation("TenantFavorites")
-  tenants      Tenant[]      @relation("TenantProperties")
+  location            Location            @relation(fields: [locationId], references: [id])
+  manager             Manager             @relation(fields: [managerCognitoId], references: [cognitoId])
+  leases              Lease[]
+  applications        Application[]
+  favoritedBy         Tenant[]            @relation("TenantFavorites")
+  tenants             Tenant[]            @relation("TenantProperties")
+  terminationPolicies TerminationPolicy[]
 }
 
 model Manager {
@@ -120,6 +121,7 @@ model Manager {
   managedProperties   Property[]
   notifications       Notification[]
   terminationRequests TerminationRequest[]
+  createdPolicies     TerminationPolicy[]
 }
 
 model Tenant {
@@ -129,12 +131,11 @@ model Tenant {
   email       String
   phoneNumber String
 
-  properties          Property[]           @relation("TenantProperties")
-  favorites           Property[]           @relation("TenantFavorites")
-  applications        Application[]
-  leases              Lease[]
-  notifications       Notification[]
-  terminationRequests TerminationRequest[]
+  properties    Property[]     @relation("TenantProperties")
+  favorites     Property[]     @relation("TenantFavorites")
+  applications  Application[]
+  leases        Lease[]
+  notifications Notification[]
 }
 
 model Location {
@@ -186,19 +187,60 @@ model Lease {
 }
 
 model TerminationRequest {
-  id               Int                      @id @default(autoincrement())
-  reason           String
-  requestDate      DateTime                 @default(now())
-  status           TerminationRequestStatus @default(Pending)
-  managerResponse  String?
-  responseDate     DateTime?
-  leaseId          Int
-  tenantCognitoId  String
-  managerCognitoId String?
+  id                  String                   @id @default(cuid())
+  leaseId             Int
+  reason              String
+  requestedDate       DateTime                 @default(now())
+  requestedEndDate    DateTime?
+  status              TerminationRequestStatus @default(Pending)
+  createdAt           DateTime                 @default(now())
+  updatedAt           DateTime                 @updatedAt
+  managerId           Int?
+  managerNote         String?
+  penaltyAmount       Float?
+  calculatedPenalty   Float?
+  finalPenalty        Float?
+  noticeProvided      Int? // days of notice provided
+  estimatedPenaltyFee Float?
+  isEarlyTermination  Boolean?
+  approvedEndDate     DateTime?
+  tenantCognitoId     String?
+  managerCognitoId    String?
+  managerResponse     String?
+  responseDate        DateTime?
+  finalPenaltyFee     Float?
 
   lease   Lease    @relation(fields: [leaseId], references: [id])
-  tenant  Tenant   @relation(fields: [tenantCognitoId], references: [cognitoId])
-  manager Manager? @relation(fields: [managerCognitoId], references: [cognitoId])
+  manager Manager? @relation(fields: [managerId], references: [id])
+
+  @@map("termination_requests")
+}
+
+model TerminationPolicy {
+  id         String  @id @default(cuid())
+  propertyId Int
+  isActive   Boolean @default(true)
+
+  // Notice period requirements
+  minimumNoticedays Int @default(30)
+
+  // Penalty rules
+  penaltyRules Json // Array of penalty rule objects
+
+  // Special conditions
+  allowWaiverConditions Json? // Conditions that allow penalty waiver
+
+  // Grace periods
+  gracePeriodDays Int? @default(60) // Days before lease end with no penalty
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdById Int
+
+  property  Property @relation(fields: [propertyId], references: [id])
+  createdBy Manager  @relation(fields: [createdById], references: [id])
+
+  @@map("termination_policies")
 }
 
 model Payment {
@@ -208,6 +250,7 @@ model Payment {
   dueDate       DateTime
   paymentDate   DateTime?
   paymentStatus PaymentStatus @default(Pending)
+  description   String? // Để track penalty fees và loại payment khác
   leaseId       Int
 
   lease Lease @relation(fields: [leaseId], references: [id])
@@ -224,6 +267,8 @@ enum NotificationType {
   LeaseExpiring
   NewMessage
   PropertyUpdated
+  TerminationRequest
+  TerminationResponse
 }
 
 model Notification {

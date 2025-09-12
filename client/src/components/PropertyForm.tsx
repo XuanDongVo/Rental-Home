@@ -23,6 +23,7 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ mode, property, onSuccess }
     const [createProperty] = useCreatePropertyMutation();
     const [updateProperty] = useUpdatePropertyMutation();
     const { data: authUser } = useGetAuthUserQuery();
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     // Dynamic title based on mode
     const title = mode === "create" ? "Add New Property" : `Edit Property: ${property?.name || ""}`;
@@ -56,8 +57,22 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ mode, property, onSuccess }
     });
 
     const onSubmit = async (data: PropertyFormData) => {
-        if (!authUser?.cognitoInfo?.userId) {
+        if (!authUser?.userInfo?.cognitoId) {
             throw new Error("No manager ID found");
+        }
+
+        setIsSubmitting(true);
+
+        console.log("Auth user:", authUser); // Debug log
+        console.log("Manager Cognito ID:", authUser.userInfo.cognitoId); // Debug log
+
+        // First, let's check what managers exist in database
+        try {
+            const response = await fetch('/api/managers'); // We need to create this endpoint
+            const managers = await response.json();
+            console.log("Available managers:", managers);
+        } catch (err) {
+            console.log("Could not fetch managers");
         }
 
         const formData = new FormData();
@@ -74,7 +89,7 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ mode, property, onSuccess }
             }
         });
 
-        formData.append("managerCognitoId", authUser.cognitoInfo.userId);
+        formData.append("managerCognitoId", authUser.userInfo.cognitoId);
 
         try {
             if (mode === "create") {
@@ -87,6 +102,10 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ mode, property, onSuccess }
             onSuccess?.();
         } catch (error) {
             console.error(`Failed to ${mode} property:`, error);
+            // Show user-friendly error message
+            alert(`Failed to ${mode} property. Please check if you are properly registered as a manager.`);
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -378,9 +397,17 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ mode, property, onSuccess }
 
                         <Button
                             type="submit"
-                            className="bg-primary-700 text-white w-full mt-8"
+                            disabled={isSubmitting}
+                            className="bg-primary-700 text-white w-full mt-8 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                            {mode === "create" ? "Create Property" : "Update Property"}
+                            {isSubmitting ? (
+                                <div className="flex items-center justify-center">
+                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                                    {mode === "create" ? "Creating Property..." : "Updating Property..."}
+                                </div>
+                            ) : (
+                                mode === "create" ? "Create Property" : "Update Property"
+                            )}
                         </Button>
                     </form>
                 </Form>

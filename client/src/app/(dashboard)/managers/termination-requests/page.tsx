@@ -141,8 +141,8 @@ const TerminationRequests = () => {
                             key={status}
                             onClick={() => setSelectedStatus(status)}
                             className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${selectedStatus === status
-                                    ? "bg-white text-gray-900 shadow-sm"
-                                    : "text-gray-600 hover:text-gray-900"
+                                ? "bg-white text-gray-900 shadow-sm"
+                                : "text-gray-600 hover:text-gray-900"
                                 }`}
                         >
                             {status.charAt(0).toUpperCase() + status.slice(1)}

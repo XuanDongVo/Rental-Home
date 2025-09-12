@@ -1,13 +1,11 @@
-version: "3.9"
-
 services:
   database:
     image: postgis/postgis:15-3.5-alpine
     container_name: database
     env_file:
-      - ./server/.env
+      - ./server/.env.production
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - db_data:/var/lib/postgresql/data
     healthcheck:

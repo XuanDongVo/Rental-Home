@@ -73,6 +73,32 @@ export const createLocation = async (
 };
 
 export const createProperty = async (data: any) => {
+  // Check if manager exists, if not create one
+  const { managerCognitoId } = data;
+
+  if (managerCognitoId) {
+    const existingManager = await prisma.manager.findUnique({
+      where: { cognitoId: managerCognitoId },
+    });
+
+    if (!existingManager) {
+      console.log(
+        `Manager with cognitoId ${managerCognitoId} not found. Creating new manager...`
+      );
+
+      await prisma.manager.create({
+        data: {
+          cognitoId: managerCognitoId,
+          name: "New Manager", // Default name
+          email: `manager-${Date.now()}@example.com`, // Unique email
+          phoneNumber: "+1234567890",
+        },
+      });
+
+      console.log(`Manager created with cognitoId: ${managerCognitoId}`);
+    }
+  }
+
   return await prisma.property.create({
     data,
     include: { location: true, manager: true },
