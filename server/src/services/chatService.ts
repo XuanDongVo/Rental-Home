@@ -2,12 +2,16 @@ import prisma from '../lib/prisma';
 
 export const sendMessage = async (senderId: string, receiverId: string, content: string) => {
   return prisma.message.create({
-    data: { senderId, receiverId, content },
+    data: { 
+      senderId, 
+      receiverId, 
+      content 
+    }
   });
 };
 
 export const getChatHistory = async (user1: string, user2: string) => {
-  return prisma.message.findMany({
+  const messages = await prisma.message.findMany({
     where: {
       OR: [
         { senderId: user1, receiverId: user2 },
@@ -16,12 +20,22 @@ export const getChatHistory = async (user1: string, user2: string) => {
     },
     orderBy: { createdAt: 'asc' },
   });
+
+  // Transform the messages to ensure proper data types
+  return messages.map(message => ({
+    ...message,
+    createdAt: message.createdAt.toISOString(),
+    isRead: Boolean(message.isRead),
+  }));
 };
 
 export const searchUsers = async (query: string, excludeUserId?: string) => {
   const q = query.trim();
+  console.log('Searching users with query:', q, 'excludeUserId:', excludeUserId);
+  
   if (!q) return [] as Array<any>;
 
+  // Search in both tenants and managers
   const [tenants, managers]: [
     Array<{ id: number; name: string; email: string; cognitoId: string }>,
     Array<{ id: number; name: string; email: string; cognitoId: string }>
@@ -74,6 +88,10 @@ export const searchUsers = async (query: string, excludeUserId?: string) => {
     cognitoId: m.cognitoId,
   }));
 
+  console.log('Found tenants:', tenants.length, 'managers:', managers.length);
+  console.log('Mapped tenants:', mappedTenants);
+  console.log('Mapped managers:', mappedManagers);
+
   return [...mappedTenants, ...mappedManagers];
 };
 
@@ -103,10 +121,11 @@ export const getConversations = async (userId: string) => {
         },
         orderBy: { createdAt: 'desc' },
       });
-      return { peerId, lastMessage: last } as { peerId: string; lastMessage: { id: number; content: string; senderId: string; receiverId: string; createdAt: Date } | null };
+      return { peerId, lastMessage: last };
     })
   );
 
+  // Get user info from both tenants and managers
   const tenantPeers: Array<{ cognitoId: string; name: string; email: string }> = await prisma.tenant.findMany({
     where: { cognitoId: { in: peers } },
     select: { cognitoId: true, name: true, email: true },
@@ -115,13 +134,17 @@ export const getConversations = async (userId: string) => {
     where: { cognitoId: { in: peers } },
     select: { cognitoId: true, name: true, email: true },
   });
+  
   const infoMap = new Map<string, { name: string; email: string; type: 'tenant' | 'manager' }>();
-  tenantPeers.forEach((t: { cognitoId: string; name: string; email: string }) => infoMap.set(t.cognitoId, { name: t.name, email: t.email, type: 'tenant' }));
-  managerPeers.forEach((m: { cognitoId: string; name: string; email: string }) => infoMap.set(m.cognitoId, { name: m.name, email: m.email, type: 'manager' }));
+  tenantPeers.forEach((t: { cognitoId: string; name: string; email: string }) => 
+    infoMap.set(t.cognitoId, { name: t.name, email: t.email, type: 'tenant' }));
+  managerPeers.forEach((m: { cognitoId: string; name: string; email: string }) => 
+    infoMap.set(m.cognitoId, { name: m.name, email: m.email, type: 'manager' }));
 
   return latestPerPeer
     .filter((x) => !!x.lastMessage)
-    .sort((a, b) => (a.lastMessage && b.lastMessage ? (b.lastMessage.createdAt.getTime() - a.lastMessage.createdAt.getTime()) : 0))
+    .sort((a, b) => (a.lastMessage && b.lastMessage ? 
+      (b.lastMessage.createdAt.getTime() - a.lastMessage.createdAt.getTime()) : 0))
     .map((x) => {
       const info = infoMap.get(x.peerId);
       return {
@@ -130,20 +153,53 @@ export const getConversations = async (userId: string) => {
         email: info?.email || '',
         type: (info?.type || 'tenant') as 'tenant' | 'manager',
         lastMessage: {
-          id: (x.lastMessage as any).id,
-          content: (x.lastMessage as any).content,
-          senderId: (x.lastMessage as any).senderId,
-          receiverId: (x.lastMessage as any).receiverId,
-          createdAt: (x.lastMessage as any).createdAt,
+          id: x.lastMessage!.id,
+          content: x.lastMessage!.content,
+          senderId: x.lastMessage!.senderId,
+          receiverId: x.lastMessage!.receiverId,
+          createdAt: x.lastMessage!.createdAt.toISOString(),
+          isRead: Boolean(x.lastMessage!.isRead),
         },
       };
     });
 };
 
 export const getUserById = async (cognitoId: string) => {
-  const tenant = await prisma.tenant.findUnique({ where: { cognitoId }, select: { cognitoId: true, name: true, email: true } });
+  // Check tenants and managers tables
+  const tenant = await prisma.tenant.findUnique({ 
+    where: { cognitoId }, 
+    select: { cognitoId: true, name: true, email: true } 
+  });
   if (tenant) return { type: 'tenant' as const, ...tenant };
-  const manager = await prisma.manager.findUnique({ where: { cognitoId }, select: { cognitoId: true, name: true, email: true } });
+  
+  const manager = await prisma.manager.findUnique({ 
+    where: { cognitoId }, 
+    select: { cognitoId: true, name: true, email: true } 
+  });
   if (manager) return { type: 'manager' as const, ...manager };
+  
   return null;
+};
+
+export const markMessagesAsRead = async (senderId: string, receiverId: string) => {
+  return prisma.message.updateMany({
+    where: {
+      senderId: senderId,
+      receiverId: receiverId,
+      isRead: false
+    },
+    data: {
+      isRead: true
+    }
+  });
+};
+
+export const getUnreadMessageCount = async (userId: string) => {
+  const count = await prisma.message.count({
+    where: {
+      receiverId: userId,
+      isRead: false
+    }
+  });
+  return count;
 };

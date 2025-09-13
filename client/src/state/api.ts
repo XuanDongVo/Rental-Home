@@ -684,27 +684,97 @@ export const api = createApi({
         if (exclude) params.append('exclude', exclude);
         return `chat/users?${params.toString()}`;
       },
+      transformResponse: (response: { success: boolean; data: any[] }) => {
+        return response.success ? response.data : [];
+      },
     }),
 
     // Chat: conversation history between two user ids
     getChatHistory: build.query<
-      Array<{ id: number; senderId: string; receiverId: string; content: string; createdAt: string }>,
+      Array<{ 
+        id: number; 
+        senderId: string; 
+        receiverId: string; 
+        content: string; 
+        createdAt: string;
+        isRead: boolean;
+        sender?: { cognitoId: string; name: string; email: string; userType: string };
+        receiver?: { cognitoId: string; name: string; email: string; userType: string };
+      }>,
       { user1: string; user2: string }
     >({
       query: ({ user1, user2 }) => `chat/history?user1=${encodeURIComponent(user1)}&user2=${encodeURIComponent(user2)}`,
+      transformResponse: (response: { success: boolean; data: any[] }) => {
+        return response.success ? response.data : [];
+      },
     }),
 
     // Chat: recent conversations for a user
     getConversations: build.query<
-      Array<{ peerId: string; name: string; email: string; type: string; lastMessage: { id: number; content: string; senderId: string; receiverId: string; createdAt: string } }>,
+      Array<{ 
+        peerId: string; 
+        name: string; 
+        email: string; 
+        type: string; 
+        lastMessage: { 
+          id: number; 
+          content: string; 
+          senderId: string; 
+          receiverId: string; 
+          createdAt: string;
+          isRead: boolean;
+        } 
+      }>,
       { userId: string }
     >({
-      query: ({ userId }) => `chat/conversations?userId=${encodeURIComponent(userId)}`,
+      query: ({ userId }) => `chat/conversations/${encodeURIComponent(userId)}`,
+      transformResponse: (response: { success: boolean; data: any[] }) => {
+        return response.success ? response.data : [];
+      },
     }),
 
     // Chat: fetch one user's profile by cognitoId
     getChatUser: build.query<{ cognitoId: string; name: string; email: string; type: string } | null, string>({
       query: (cognitoId) => `chat/user/${encodeURIComponent(cognitoId)}`,
+      transformResponse: (response: { success: boolean; data: any }) => {
+        return response.success ? response.data : null;
+      },
+    }),
+
+    // Chat: send a message
+    sendChatMessage: build.mutation<
+      { id: number; senderId: string; receiverId: string; content: string; createdAt: string; isRead: boolean },
+      { senderId: string; receiverId: string; content: string }
+    >({
+      query: (body) => ({
+        url: "chat/send",
+        method: "POST",
+        body,
+      }),
+    }),
+
+    // Chat: mark messages as read
+    markChatMessagesAsRead: build.mutation<
+      { updatedCount: number },
+      { senderId: string; receiverId: string }
+    >({
+      query: (body) => ({
+        url: "chat/mark-read",
+        method: "POST",
+        body,
+      }),
+    }),
+
+    // Chat: get unread message count
+    getUnreadMessageCount: build.query<
+      { unreadCount: number },
+      string
+    >({
+      query: (userId) => `chat/unread-count/${encodeURIComponent(userId)}`,
+      transformResponse: (response: { success: boolean; data: { unreadCount: number } }) => {
+        return response.success ? response.data : { unreadCount: 0 };
+      },
+    }),
 
     // Termination Policy endpoints
     getTerminationPolicies: build.query<
@@ -889,6 +959,9 @@ export const {
   useGetChatHistoryQuery,
   useGetConversationsQuery,
   useGetChatUserQuery,
+  useSendChatMessageMutation,
+  useMarkChatMessagesAsReadMutation,
+  useGetUnreadMessageCountQuery,
 
   // Termination Policy hooks
   useGetTerminationPoliciesQuery,

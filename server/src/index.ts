@@ -81,25 +81,37 @@ const io = new SocketIOServer(httpServer, {
 });
 
 io.on("connection", (socket: Socket) => {
+  console.log(`User connected: ${socket.id}`);
+
   // client should emit 'join' with their userId (cognitoId)
   socket.on("join", (userId: string) => {
-    if (userId) socket.join(userId);
+    if (userId) {
+      socket.join(userId);
+      console.log(`User ${userId} joined room`);
+    }
   });
 
   socket.on("chat:send", async (data: { senderId: string; receiverId: string; content: string }) => {
     try {
-      const saved = await prisma.message.create({
-        data: {
-          senderId: data.senderId,
-          receiverId: data.receiverId,
-          content: data.content,
-        },
-      });
+      console.log(`Message from ${data.senderId} to ${data.receiverId}: ${data.content}`);
+      
+      // Use the chat service to save the message
+      const { sendMessage } = await import('./services/chatService.js');
+      const saved = await sendMessage(data.senderId, data.receiverId, data.content);
+      
+      // Emit to both sender and receiver
       io.to(data.receiverId).emit("chat:receive", saved);
       io.to(data.senderId).emit("chat:receive", saved);
-    } catch (e) {
-      // swallow
+      
+      console.log(`Message sent successfully: ${saved.id}`);
+    } catch (error) {
+      console.error('Error sending message via socket:', error);
+      socket.emit("chat:error", { message: "Failed to send message" });
     }
+  });
+
+  socket.on("disconnect", () => {
+    console.log(`User disconnected: ${socket.id}`);
   });
 });
 

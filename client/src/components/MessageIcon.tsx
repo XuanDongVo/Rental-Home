@@ -1,61 +1,65 @@
 "use client";
 
-import React from "react";
-import { MessageCircle } from "lucide-react";
-import { useRouter } from "next/navigation";
-import { useUnreadMessages } from "@/hooks/useUnreadMessages";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import React from 'react';
+import { MessageCircle } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useUnreadMessages } from '@/hooks/useUnreadMessages';
+import { cn } from '@/lib/utils';
 
 interface MessageIconProps {
-    className?: string;
-    showBadge?: boolean;
-    onClick?: () => void;
+  className?: string;
+  showBadge?: boolean;
+  onClick?: () => void;
 }
 
 const MessageIcon: React.FC<MessageIconProps> = ({
-    className,
-    showBadge = true,
-    onClick
+  className,
+  showBadge = true,
+  onClick
 }) => {
-    const { totalUnread, isLoading } = useUnreadMessages();
-    const router = useRouter();
+  const { totalUnread, isLoading } = useUnreadMessages();
+  const router = useRouter();
 
-    const handleClick = () => {
-        if (onClick) {
-            onClick();
-        } else {
-            router.push("/chat");
-        }
-    };
+  const handleClick = () => {
+    if (onClick) {
+      onClick();
+    } else {
+      router.push('/chat');
+    }
+  };
 
-    const formatUnreadCount = (count: number): string => {
-        if (count === 0) return "";
-        if (count > 99) return "99+";
-        return count.toString();
-    };
+  const formatUnreadCount = (count: number): string => {
+    if (count === 0) return '';
+    if (count > 99) return '99+';
+    return count.toString();
+  };
 
-    return (
-        <Button
-            variant="ghost"
-            size="icon"
-            className={`relative text-primary-200 hover:text-white hover:bg-white/10 h-10 w-10 ${className || ''}`}
-            onClick={handleClick}
-        >
-            <MessageCircle className="h-7 w-7" />            {showBadge && !isLoading && totalUnread > 0 && (
-                <Badge
-                    variant="destructive"
-                    className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center text-xs p-0"
-                >
-                    {formatUnreadCount(totalUnread)}
-                </Badge>
-            )}
-
-            {showBadge && !isLoading && totalUnread === 0 && (
-                <span className="absolute top-0 right-0 w-2 h-2 bg-gray-400 rounded-full opacity-50"></span>
-            )}
-        </Button>
-    );
+  return (
+    <div className="relative">
+      <button
+        onClick={handleClick}
+        className={cn(
+          "p-2 rounded-lg hover:bg-gray-100 transition-colors",
+          className
+        )}
+        title="Messages"
+      >
+        <MessageCircle className="h-6 w-6 text-gray-600" />
+      </button>
+      
+      {showBadge && totalUnread > 0 && (
+        <div className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-medium">
+          {formatUnreadCount(totalUnread)}
+        </div>
+      )}
+      
+      {isLoading && (
+        <div className="absolute -top-1 -right-1 bg-gray-400 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+          <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></div>
+        </div>
+      )}
+    </div>
+  );
 };
 
 export default MessageIcon;

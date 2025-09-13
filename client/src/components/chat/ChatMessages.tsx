@@ -1,142 +1,204 @@
 "use client";
 
-import React, { useRef, useEffect } from "react";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import React, { useEffect, useRef } from "react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 
 interface Message {
-    id: string;
-    text: string;
-    timestamp: Date;
-    isFromUser: boolean;
-    status?: 'sent' | 'delivered' | 'read';
-    isRead?: boolean; // New property to track if message is read
+  id: string | number;
+  content: string;
+  timestamp: Date;
+  isFromUser: boolean;
+  status?: 'sent' | 'delivered' | 'read';
+  isRead?: boolean;
+  senderId?: string;
+  receiverId?: string;
 }
 
 interface Conversation {
-    id: string;
-    managerName: string;
-    propertyName: string;
-    lastMessage: string;
-    timestamp: Date;
-    unreadCount: number;
-    avatar?: string;
-    managerId: string;
-    propertyId: string;
+  id: string;
+  peerId: string;
+  name: string;
+  email: string;
+  type: 'tenant' | 'manager';
+  lastMessage: {
+    id: number;
+    content: string;
+    senderId: string;
+    receiverId: string;
+    createdAt: string;
+    isRead: boolean;
+  };
+  unreadCount?: number;
 }
 
 interface ChatMessagesProps {
-    messages: Message[];
-    conversation: Conversation;
-    isTyping?: boolean;
-    onMessageRead?: (messageId: string) => void;
+  messages: Message[];
+  conversation: Conversation;
+  isTyping?: boolean;
+  onMessageRead?: (messageId: string | number) => void;
 }
 
 const ChatMessages: React.FC<ChatMessagesProps> = ({
-    messages,
-    conversation,
-    isTyping = false,
-    onMessageRead
+  messages,
+  conversation,
+  isTyping = false,
+  onMessageRead
 }) => {
-    const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
-    const scrollToBottom = () => {
-        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    };
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
 
-    useEffect(() => {
-        scrollToBottom();
-    }, [messages]);
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
 
-    // Mark messages as read when they come into view
-    useEffect(() => {
-        const unreadMessages = messages.filter(msg => !msg.isFromUser && !msg.isRead);
-        unreadMessages.forEach(msg => {
-            if (onMessageRead) {
-                onMessageRead(msg.id);
-            }
-        });
-    }, [messages, onMessageRead]);
+  const formatTime = (date: Date) => {
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
 
-    const formatTime = (date: Date) => {
-        return date.toLocaleTimeString('en-US', {
-            hour: '2-digit',
-            minute: '2-digit',
-            hour12: true
-        });
-    };
+  const getInitials = (name: string) => {
+    return name
+      .split(' ')
+      .map(word => word.charAt(0))
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
+  };
 
-    return (
-        <div className="flex-1 overflow-y-auto p-4 bg-gray-50">
-            <div className="space-y-4 max-w-4xl mx-auto">
-                {messages.map((message) => (
-                    <div
-                        key={message.id}
-                        className={`flex ${message.isFromUser ? 'justify-end' : 'justify-start'}`}
-                    >
-                        <div className={`flex items-end gap-2 max-w-[70%] ${message.isFromUser ? 'flex-row-reverse' : 'flex-row'
-                            }`}>
-                            {!message.isFromUser && (
-                                <Avatar className="h-8 w-8">
-                                    <AvatarFallback className="bg-gray-400 text-white text-xs">
-                                        {conversation.managerName.charAt(0)}
-                                    </AvatarFallback>
-                                </Avatar>
-                            )}
+  const getStatusIcon = (status?: string) => {
+    switch (status) {
+      case 'sent':
+        return '✓';
+      case 'delivered':
+        return '✓✓';
+      case 'read':
+        return '✓✓';
+      default:
+        return '';
+    }
+  };
 
-                            <div className={`p-3 rounded-2xl relative ${message.isFromUser
-                                ? 'bg-primary-600 text-white'
-                                : `bg-white text-gray-900 shadow-sm border ${!message.isRead && !message.isFromUser ? 'ring-2 ring-blue-200 bg-blue-50' : ''}`
-                                }`}>
-                                <p className="text-sm leading-relaxed">{message.text}</p>
+  const getStatusColor = (status?: string) => {
+    switch (status) {
+      case 'sent':
+        return 'text-gray-400';
+      case 'delivered':
+        return 'text-gray-400';
+      case 'read':
+        return 'text-blue-500';
+      default:
+        return 'text-gray-400';
+    }
+  };
 
-                                {/* Unread indicator for received messages */}
-                                {!message.isFromUser && !message.isRead && (
-                                    <div className="absolute -left-2 top-1/2 transform -translate-y-1/2 w-3 h-3 bg-blue-500 rounded-full"></div>
-                                )}
-
-                                <div className={`flex items-center gap-1 mt-1 ${message.isFromUser ? 'justify-end' : 'justify-start'
-                                    }`}>
-                                    <span className={`text-xs ${message.isFromUser ? 'text-primary-200' : 'text-gray-500'
-                                        }`}>
-                                        {formatTime(message.timestamp)}
-                                    </span>
-                                    {message.isFromUser && message.status && (
-                                        <span className={`text-xs ml-1 ${message.status === 'read' ? 'text-blue-300' :
-                                            message.status === 'delivered' ? 'text-primary-200' : 'text-primary-300'
-                                            }`}>
-                                            {message.status === 'read' ? '✓✓' :
-                                                message.status === 'delivered' ? '✓✓' : '✓'}
-                                        </span>
-                                    )}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                ))}
-
-                {/* Typing Indicator */}
-                {isTyping && (
-                    <div className="flex justify-start">
-                        <div className="flex items-end gap-2">
-                            <Avatar className="h-8 w-8">
-                                <AvatarFallback className="bg-gray-400 text-white text-xs">
-                                    {conversation.managerName.charAt(0)}
-                                </AvatarFallback>
-                            </Avatar>
-                            <div className="bg-white p-3 rounded-2xl shadow-sm border">
-                                <div className="flex space-x-1">
-                                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-                                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                )}
-                <div ref={messagesEndRef} />
+  return (
+    <div className="flex-1 overflow-y-auto bg-gray-50 p-4">
+      <div className="max-w-4xl mx-auto space-y-4">
+        {messages.length === 0 ? (
+          <div className="text-center py-8">
+            <div className="text-gray-500 text-sm">
+              No messages yet. Start the conversation!
             </div>
-        </div>
-    );
+          </div>
+        ) : (
+          messages.map((message, index) => {
+            const isFirstMessage = index === 0;
+            const prevMessage = index > 0 ? messages[index - 1] : null;
+            const showAvatar = !prevMessage || 
+              prevMessage.isFromUser !== message.isFromUser ||
+              (new Date(message.timestamp).getTime() - new Date(prevMessage.timestamp).getTime()) > 300000; // 5 minutes
+
+            return (
+              <div
+                key={message.id}
+                className={cn(
+                  "flex gap-3",
+                  message.isFromUser ? "justify-end" : "justify-start"
+                )}
+              >
+                {/* Avatar for received messages */}
+                {!message.isFromUser && showAvatar && (
+                  <Avatar className="h-8 w-8 mt-1">
+                    <AvatarFallback className="text-xs bg-gray-200">
+                      {getInitials(conversation.name)}
+                    </AvatarFallback>
+                  </Avatar>
+                )}
+
+                {/* Spacer for sent messages */}
+                {message.isFromUser && showAvatar && (
+                  <div className="w-8" />
+                )}
+
+                <div
+                  className={cn(
+                    "max-w-xs lg:max-w-md px-4 py-2 rounded-2xl",
+                    message.isFromUser
+                      ? "bg-blue-500 text-white"
+                      : "bg-white text-gray-900 border border-gray-200"
+                  )}
+                >
+                  <div className="text-sm leading-relaxed">
+                    {message.content}
+                  </div>
+                  
+                  <div className={cn(
+                    "flex items-center justify-end gap-1 mt-1 text-xs",
+                    message.isFromUser ? "text-blue-100" : "text-gray-500"
+                  )}>
+                    <span>{formatTime(message.timestamp)}</span>
+                    {message.isFromUser && (
+                      <span className={cn("text-xs", getStatusColor(message.status))}>
+                        {getStatusIcon(message.status)}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Avatar for sent messages */}
+                {message.isFromUser && showAvatar && (
+                  <Avatar className="h-8 w-8 mt-1">
+                    <AvatarFallback className="text-xs bg-blue-500 text-white">
+                      Me
+                    </AvatarFallback>
+                  </Avatar>
+                )}
+
+                {/* Spacer for received messages */}
+                {!message.isFromUser && showAvatar && (
+                  <div className="w-8" />
+                )}
+              </div>
+            );
+          })
+        )}
+
+        {/* Typing indicator */}
+        {isTyping && (
+          <div className="flex gap-3 justify-start">
+            <Avatar className="h-8 w-8 mt-1">
+              <AvatarFallback className="text-xs bg-gray-200">
+                {getInitials(conversation.name)}
+              </AvatarFallback>
+            </Avatar>
+            <div className="bg-white border border-gray-200 rounded-2xl px-4 py-2">
+              <div className="flex space-x-1">
+                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" />
+                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }} />
+                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div ref={messagesEndRef} />
+      </div>
+    </div>
+  );
 };
 
 export default ChatMessages;
