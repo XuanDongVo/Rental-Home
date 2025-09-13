@@ -675,6 +675,38 @@ export const api = createApi({
       },
     }),
 
+    // Chat: search users (tenants and managers) by name/email
+    searchChatUsers: build.query<
+      Array<{ type: string; id: number; name: string; email: string; cognitoId: string }>,
+      { q: string; exclude?: string }
+    >({
+      query: ({ q, exclude }) => {
+        const params = new URLSearchParams({ q });
+        if (exclude) params.append('exclude', exclude);
+        return `chat/users?${params.toString()}`;
+      },
+    }),
+
+    // Chat: conversation history between two user ids
+    getChatHistory: build.query<
+      Array<{ id: number; senderId: string; receiverId: string; content: string; createdAt: string }>,
+      { user1: string; user2: string }
+    >({
+      query: ({ user1, user2 }) => `chat/history?user1=${encodeURIComponent(user1)}&user2=${encodeURIComponent(user2)}`,
+    }),
+
+    // Chat: recent conversations for a user
+    getConversations: build.query<
+      Array<{ peerId: string; name: string; email: string; type: string; lastMessage: { id: number; content: string; senderId: string; receiverId: string; createdAt: string } }>,
+      { userId: string }
+    >({
+      query: ({ userId }) => `chat/conversations?userId=${encodeURIComponent(userId)}`,
+    }),
+
+    // Chat: fetch one user's profile by cognitoId
+    getChatUser: build.query<{ cognitoId: string; name: string; email: string; type: string } | null, string>({
+      query: (cognitoId) => `chat/user/${encodeURIComponent(cognitoId)}`,
+
     // Termination Policy endpoints
     getTerminationPolicies: build.query<
       any[],
@@ -788,6 +820,7 @@ export const api = createApi({
         method: "POST",
         body,
       }),
+
     }),
 
     // Termination Request endpoints
@@ -882,6 +915,13 @@ export const {
   useGetCurrentMonthPaymentStatusByPropertyQuery,
   useGetOverduePaymentsQuery,
   useCheckOverduePaymentsMutation,
+
+  // Chat hooks
+  useSearchChatUsersQuery,
+  useGetChatHistoryQuery,
+  useGetConversationsQuery,
+  useGetChatUserQuery,
+
   // Termination Policy hooks
   useGetTerminationPoliciesQuery,
   useGetTerminationPolicyQuery,
@@ -889,6 +929,7 @@ export const {
   useUpdateTerminationPolicyMutation,
   useDeleteTerminationPolicyMutation,
   useCalculateTerminationPenaltyMutation,
+
   // Termination Request hooks
   useSubmitTerminationRequestMutation,
   useGetManagerTerminationRequestsQuery,

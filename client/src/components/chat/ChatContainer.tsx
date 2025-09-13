@@ -1,6 +1,11 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
+import { io, Socket } from "socket.io-client";
+import { useGetAuthUserQuery } from "@/state/api";
+// Default server URLs
+const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:3001";
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL;
 import { useRouter } from "next/navigation";
 import ChatSidebar from "./ChatSidebar";
 import ChatHeader from "./ChatHeader";
@@ -8,6 +13,7 @@ import ChatMessages from "./ChatMessages";
 import ChatInput from "./ChatInput";
 import { MessageCircle } from "lucide-react";
 import { useUnreadMessages } from "@/hooks/useUnreadMessages";
+import { useGetChatHistoryQuery, useGetConversationsQuery } from "@/state/api";
 
 interface Conversation {
     id: string;
@@ -47,6 +53,8 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
 }) => {
     const router = useRouter();
     const { markAsRead } = useUnreadMessages();
+    const { data: authUser } = useGetAuthUserQuery();
+    const currentUserId = authUser?.cognitoInfo?.userId;
 
     console.log('🎯 ChatContainer props:', {
         propertyId,
@@ -128,11 +136,84 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
     );
     const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
     const [messages, setMessages] = useState<Message[]>(
-        initialMessages.length > 0 ? initialMessages : defaultMessages
+        initialMessages.length > 0 ? initialMessages : []
     );
     const [newMessage, setNewMessage] = useState("");
     const [isTyping, setIsTyping] = useState(false);
     const [searchQuery, setSearchQuery] = useState("");
+    // Socket ref
+    const socketRef = useRef<Socket | null>(null);
+    // Socket.io: Kết nối và lắng nghe tin nhắn realtime
+    useEffect(() => {
+        if (!currentUserId) return;
+        socketRef.current = io(SOCKET_URL, { transports: ["websocket"] });
+        // Join personal room for direct messages
+        socketRef.current.emit("join", currentUserId);
+
+        socketRef.current.on("chat:receive", (data: any) => {
+            // data: { id?, senderId, receiverId, content, createdAt? }
+            // Avoid duplicating the sender's own message (we already appended locally)
+            if (data.senderId === currentUserId) {
+                // Optionally, update the status of the last local message here
+                return;
+            }
+            setMessages(prev => [
+                ...prev,
+                {
+                    id: (data.id?.toString?.()) || Date.now().toString(),
+                    text: data.content,
+                    timestamp: data.createdAt ? new Date(data.createdAt) : new Date(),
+                    isFromUser: false,
+                }
+            ]);
+
+            // Ensure conversation shows the sender with preview and unread badge
+            setConversations(prev => {
+                const convId = data.senderId as string;
+                const existing = prev.find(c => c.id === convId);
+                const now = data.createdAt ? new Date(data.createdAt) : new Date();
+                if (existing) {
+                    return prev.map(c =>
+                        c.id === convId
+                            ? {
+                                ...c,
+                                lastMessage: data.content,
+                                timestamp: now,
+                                unreadCount: (selectedConversation === convId ? 0 : (c.unreadCount || 0) + 1),
+                              }
+                            : c
+                    );
+                }
+                const newConv = {
+                    id: convId,
+                    managerName: 'User',
+                    propertyName: '',
+                    lastMessage: data.content,
+                    timestamp: now,
+                    unreadCount: 1,
+                    managerId: convId,
+                    propertyId: ''
+                } as any;
+                return [newConv, ...prev];
+            });
+
+            // Resolve sender's display name asynchronously
+            if (API_BASE && data.senderId) {
+                fetch(`${API_BASE}/chat/user/${encodeURIComponent(data.senderId)}`)
+                    .then(res => res.ok ? res.json() : null)
+                    .then(user => {
+                        if (user && user.name) {
+                            setConversations(prev => prev.map(c => c.id === data.senderId ? { ...c, managerName: user.name } : c));
+                        }
+                    })
+                    .catch(() => { /* ignore */ });
+            }
+        });
+
+        return () => {
+            socketRef.current?.disconnect();
+        };
+    }, [currentUserId]);
 
     // Auto-select conversation based on URL params
     useEffect(() => {
@@ -190,37 +271,77 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
         setMessages(prev => [...prev, userMessage]);
         setNewMessage("");
 
+        // Gửi tin nhắn realtime qua socket
+        if (socketRef.current && currentUserId) {
+            // TODO: truyền đúng receiverId từ selectedConv
+            const selectedConv = conversations.find(conv => conv.id === selectedConversation);
+            socketRef.current.emit("chat:send", {
+                senderId: currentUserId,
+                receiverId: selectedConv?.managerId || "manager1",
+                content: newMessage,
+            });
+        }
+
         // Update conversation last message
         setConversations(prev => prev.map(conv =>
             conv.id === selectedConversation
                 ? { ...conv, lastMessage: newMessage, timestamp: new Date() }
                 : conv
         ));
-
-        // Simulate typing indicator
-        setIsTyping(true);
-
-        // Simulate manager response after 2 seconds
-        setTimeout(() => {
-            setIsTyping(false);
-            const managerResponse: Message = {
-                id: (Date.now() + 1).toString(),
-                text: "Thank you for your message! I'll get back to you with more details shortly.",
-                timestamp: new Date(),
-                isFromUser: false
-            };
-            setMessages(prev => [...prev, managerResponse]);
-
-            // Update conversation
-            setConversations(prev => prev.map(conv =>
-                conv.id === selectedConversation
-                    ? { ...conv, lastMessage: managerResponse.text, timestamp: new Date() }
-                    : conv
-            ));
-        }, 2000);
     };
 
     const selectedConv = conversations.find(conv => conv.id === selectedConversation);
+
+    // Load persisted conversation list for the sidebar
+    const { data: persistedConversations = [] } = useGetConversationsQuery(
+        currentUserId ? { userId: currentUserId } : ({} as any),
+        { skip: !currentUserId }
+    );
+
+    useEffect(() => {
+        if (!persistedConversations || persistedConversations.length === 0) return;
+        // Merge persisted conversations into local list (avoid duplicates)
+        setConversations(prev => {
+            const map = new Map(prev.map(c => [c.id, c] as const));
+            persistedConversations.forEach(pc => {
+                const existing = map.get(pc.peerId);
+                const ts = new Date(pc.lastMessage.createdAt);
+                const updated = {
+                    id: pc.peerId,
+                    managerName: pc.name || pc.peerId,
+                    propertyName: '',
+                    lastMessage: pc.lastMessage.content,
+                    timestamp: ts,
+                    unreadCount: existing?.unreadCount || 0,
+                    managerId: pc.peerId,
+                    propertyId: ''
+                } as any;
+                map.set(pc.peerId, updated);
+            });
+            // Sort by timestamp desc to resemble inbox ordering
+            return Array.from(map.values()).sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+        });
+    }, [persistedConversations]);
+
+    // Load persisted messages when a conversation is selected
+    const peerId = selectedConv?.managerId;
+    const { data: history = [], isFetching: historyLoading } = useGetChatHistoryQuery(
+        currentUserId && peerId ? { user1: currentUserId, user2: peerId } : ({} as any),
+        { skip: !currentUserId || !peerId }
+    );
+
+    useEffect(() => {
+        if (!history || history.length === 0) return;
+        // Map server history to local message format
+        const mapped: Message[] = history.map((m) => ({
+            id: m.id.toString(),
+            text: m.content,
+            timestamp: new Date(m.createdAt),
+            isFromUser: m.senderId === currentUserId,
+            status: 'read'
+        }));
+        setMessages(mapped);
+    }, [history, currentUserId]);
 
     return (
         <div className="h-screen flex bg-gray-50 overflow-hidden">
@@ -229,7 +350,24 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
                 conversations={conversations}
                 selectedConversation={selectedConversation}
                 searchQuery={searchQuery}
-                onSelectConversation={setSelectedConversation}
+                onSelectConversation={(id: string) => {
+                    // If selecting by user id from search, create conversation if needed
+                    const existing = conversations.find(c => c.id === id);
+                    if (!existing) {
+                        const newConv = {
+                            id,
+                            managerName: 'User',
+                            propertyName: '',
+                            lastMessage: 'Start a conversation...',
+                            timestamp: new Date(),
+                            unreadCount: 0,
+                            managerId: id,
+                            propertyId: ''
+                        };
+                        setConversations(prev => [newConv as any, ...prev]);
+                    }
+                    setSelectedConversation(id);
+                }}
                 onSearchChange={setSearchQuery}
             />
 
