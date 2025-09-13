@@ -33,6 +33,7 @@ export const api = createApi({
     "Payments",
     "Applications",
     "TerminationPolicies",
+    "TerminationRequests",
   ],
   endpoints: (build) => ({
     getAuthUser: build.query<User, void>({
@@ -804,10 +805,41 @@ export const api = createApi({
         method: "POST",
         body: { leaseId, reason, requestedEndDate, tenantCognitoId },
       }),
-      invalidatesTags: [{ type: "Leases", id: "LIST" }],
+      invalidatesTags: [{ type: "Leases", id: "LIST" }, "TerminationRequests"],
       async onQueryStarted(_, { queryFulfilled }) {
         await withToast(queryFulfilled, {
           success: "Termination request submitted successfully!",
+          error: "Failed to submit termination request",
+        });
+      },
+    }),
+
+    // Get manager's termination requests
+    getManagerTerminationRequests: build.query<any[], {}>({
+      query: () => `termination-requests/manager`,
+      providesTags: ["TerminationRequests"],
+    }),
+
+    // Get tenant's termination requests
+    getTenantTerminationRequests: build.query<any[], { tenantId: string }>({
+      query: ({ tenantId }) => `termination-requests/tenant/${tenantId}`,
+      providesTags: ["TerminationRequests"],
+    }),
+
+    // Update termination request status (approve/reject)
+    updateTerminationRequestStatus: build.mutation<
+      any,
+      { id: string; status: "approved" | "rejected" }
+    >({
+      query: ({ id, status }) => ({
+        url: `termination-requests/${id}/status`,
+        method: "PUT",
+        body: { status },
+      }),
+      invalidatesTags: ["TerminationRequests"],
+      async onQueryStarted(_, { queryFulfilled }) {
+        await withToast(queryFulfilled, {
+          success: "Request status updated successfully!",
           error: "Failed to submit termination request.",
         });
       },
@@ -859,4 +891,7 @@ export const {
   useCalculateTerminationPenaltyMutation,
   // Termination Request hooks
   useSubmitTerminationRequestMutation,
+  useGetManagerTerminationRequestsQuery,
+  useGetTenantTerminationRequestsQuery,
+  useUpdateTerminationRequestStatusMutation,
 } = api;
