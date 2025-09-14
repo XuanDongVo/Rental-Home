@@ -12,7 +12,8 @@ import { MessageCircle } from "lucide-react";
 import { useUnreadMessages } from "@/hooks/useUnreadMessages";
 import { 
   useGetChatHistoryQuery, 
-  useGetConversationsQuery
+  useGetConversationsQuery,
+  useSendChatMessageMutation
 } from "@/state/api";
 
 // Default server URLs
@@ -65,6 +66,9 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
   const { markAsRead } = useUnreadMessages();
   const { data: authUser } = useGetAuthUserQuery();
   const currentUserId = authUser?.cognitoInfo?.userId;
+  
+  // Chat mutations
+  const [sendChatMessage] = useSendChatMessageMutation();
   
   // States
   const [conversations, setConversations] = useState<Conversation[]>(initialConversations);
@@ -181,15 +185,26 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
     });
 
     socketRef.current.on("chat:error", (error: any) => {
-      console.error("Chat error:", error);
+      // Handle error more safely to prevent React development mode issues
+      if (error && typeof error === 'object' && Object.keys(error).length > 0) {
+        console.error("Chat error:", error);
+      } else if (error && typeof error === 'string') {
+        console.error("Chat error:", error);
+      } else {
+        console.warn("Chat error received but no details provided");
+      }
     });
 
     socketRef.current.on("connect", () => {
       console.log("Connected to chat server");
     });
 
-    socketRef.current.on("disconnect", () => {
-      console.log("Disconnected from chat server");
+    socketRef.current.on("disconnect", (reason: any) => {
+      console.log("Disconnected from chat server:", reason || "Unknown reason");
+    });
+
+    socketRef.current.on("connect_error", (error: any) => {
+      console.error("Socket connection error:", error?.message || error || "Unknown connection error");
     });
 
     return () => {
@@ -204,12 +219,15 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
     console.log('ChatContainer - Processing conversations:', safePersistedConversations);
     
     setConversations(prev => {
-      const map = new Map(prev.map(c => [c.peerId, c] as const));
+      // Check if conversations are already up to date to prevent unnecessary updates
+      const currentConversations = Array.from(new Map(prev.map(c => [c.peerId, c] as const)).values())
+        .sort((a, b) => 
+          new Date(b.lastMessage.createdAt).getTime() - new Date(a.lastMessage.createdAt).getTime()
+        );
       
-      safePersistedConversations.forEach((pc: any) => {
-        const existing = map.get(pc.peerId);
-        const ts = new Date(pc.lastMessage.createdAt);
-        const updated: Conversation = {
+      const newConversations = safePersistedConversations.map((pc: any) => {
+        const existing = prev.find(c => c.peerId === pc.peerId);
+        return {
           id: pc.peerId,
           peerId: pc.peerId,
           name: pc.name || pc.peerId,
@@ -225,13 +243,13 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
           },
           unreadCount: existing?.unreadCount || 0
         };
-        map.set(pc.peerId, updated);
-      });
-      
-      // Sort by timestamp desc
-      return Array.from(map.values()).sort((a, b) => 
+      }).sort((a, b) => 
         new Date(b.lastMessage.createdAt).getTime() - new Date(a.lastMessage.createdAt).getTime()
       );
+      
+      // Only update if conversations have actually changed
+      const hasChanged = JSON.stringify(currentConversations) !== JSON.stringify(newConversations);
+      return hasChanged ? newConversations : prev;
     });
   }, [safePersistedConversations, conversationsLoading]);
 
@@ -286,7 +304,7 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
     } else if (autoSelectConversation && conversations.length > 0 && !selectedConversation) {
       setSelectedConversation(conversations[0].id);
     }
-  }, [propertyId, managerId, conversations, selectedConversation, autoSelectConversation]);
+  }, [propertyId, managerId, autoSelectConversation]); // Removed conversations and selectedConversation from dependencies
 
   const handleSendMessage = async () => {
     if (!newMessage.trim() || !selectedConversation || !currentUserId) return;
@@ -294,9 +312,13 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
     const currentConv = conversations.find(conv => conv.id === selectedConversation);
     if (!currentConv) return;
 
+    const messageContent = newMessage;
+    setNewMessage("");
+
+    // Optimistically update UI first
     const userMessage: Message = {
       id: Date.now().toString(),
-      content: newMessage,
+      content: messageContent,
       timestamp: new Date(),
       isFromUser: true,
       status: 'sent',
@@ -305,17 +327,6 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
     };
 
     setMessages(prev => [...prev, userMessage]);
-    const messageContent = newMessage;
-    setNewMessage("");
-
-    // Send message via socket
-    if (socketRef.current) {
-      socketRef.current.emit("chat:send", {
-        senderId: currentUserId,
-        receiverId: currentConv.peerId,
-        content: messageContent,
-      });
-    }
 
     // Update conversation last message
     setConversations(prev => prev.map(conv =>
@@ -333,6 +344,40 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
           }
         : conv
     ));
+
+    try {
+      // Save message to database via API
+      await sendChatMessage({
+        senderId: currentUserId,
+        receiverId: currentConv.peerId,
+        content: messageContent,
+      }).unwrap();
+
+      // Update message status to delivered
+      setMessages(prev => prev.map(msg => 
+        msg.id === userMessage.id 
+          ? { ...msg, status: 'delivered' as const }
+          : msg
+      ));
+
+      // Also send via socket for real-time delivery
+      if (socketRef.current) {
+        socketRef.current.emit("chat:send", {
+          senderId: currentUserId,
+          receiverId: currentConv.peerId,
+          content: messageContent,
+        });
+      }
+    } catch (error) {
+      console.error('Failed to save message:', error);
+      
+      // Update message status to show error
+      setMessages(prev => prev.map(msg => 
+        msg.id === userMessage.id 
+          ? { ...msg, status: 'sent' as const }
+          : msg
+      ));
+    }
   };
 
   const handleSelectConversation = (id: string) => {

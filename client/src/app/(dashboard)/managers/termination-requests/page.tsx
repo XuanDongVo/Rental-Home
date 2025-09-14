@@ -28,14 +28,14 @@ const TerminationRequests = () => {
         data: requests = [],
         isLoading: requestsLoading,
         error: requestsError
-    } = useGetManagerTerminationRequestsQuery({});
+    } = useGetManagerTerminationRequestsQuery();
     const [updateRequestStatus] = useUpdateTerminationRequestStatusMutation();
     const [selectedStatus, setSelectedStatus] = useState<string>("all");
 
     const handleApprove = async (requestId: number) => {
         try {
             await updateRequestStatus({
-                id: requestId.toString(),
+                requestId: requestId,
                 status: "approved"
             }).unwrap();
         } catch (error) {
@@ -46,7 +46,7 @@ const TerminationRequests = () => {
     const handleReject = async (requestId: number) => {
         try {
             await updateRequestStatus({
-                id: requestId.toString(),
+                requestId: requestId,
                 status: "rejected"
             }).unwrap();
         } catch (error) {

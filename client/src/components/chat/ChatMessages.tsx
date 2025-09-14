@@ -108,9 +108,7 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
           messages.map((message, index) => {
             const isFirstMessage = index === 0;
             const prevMessage = index > 0 ? messages[index - 1] : null;
-            const showAvatar = !prevMessage || 
-              prevMessage.isFromUser !== message.isFromUser ||
-              (new Date(message.timestamp).getTime() - new Date(prevMessage.timestamp).getTime()) > 300000; // 5 minutes
+            const showAvatar = true; // Always show avatar for better visual consistency
 
             return (
               <div

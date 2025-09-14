@@ -25,6 +25,7 @@ import terminationPolicyRoutes from "./routes/terminationPolicyRoutes";
 import terminationRequestRoutes from "./routes/terminationRequestRoutes";
 import { initializeScheduledTasks } from "./services/scheduledTasks";
 import chatRoutes from "./routes/chatRoutes";
+import { sendMessage } from "./services/chatService";
 import { createServer } from "http";
 import { Server as SocketIOServer, Socket } from "socket.io";
 import prisma from "./lib/prisma";
@@ -96,7 +97,6 @@ io.on("connection", (socket: Socket) => {
       console.log(`Message from ${data.senderId} to ${data.receiverId}: ${data.content}`);
       
       // Use the chat service to save the message
-      const { sendMessage } = await import('./services/chatService.js');
       const saved = await sendMessage(data.senderId, data.receiverId, data.content);
       
       // Emit to both sender and receiver
@@ -106,7 +106,10 @@ io.on("connection", (socket: Socket) => {
       console.log(`Message sent successfully: ${saved.id}`);
     } catch (error) {
       console.error('Error sending message via socket:', error);
-      socket.emit("chat:error", { message: "Failed to send message" });
+      socket.emit("chat:error", { 
+        message: "Failed to send message",
+        error: error instanceof Error ? error.message : "Unknown error"
+      });
     }
   });
 
