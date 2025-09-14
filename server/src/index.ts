@@ -25,10 +25,9 @@ import terminationPolicyRoutes from "./routes/terminationPolicyRoutes";
 import terminationRequestRoutes from "./routes/terminationRequestRoutes";
 import { initializeScheduledTasks } from "./services/scheduledTasks";
 import chatRoutes from "./routes/chatRoutes";
-import { sendMessage } from "./services/chatService";
 import { createServer } from "http";
 import { Server as SocketIOServer, Socket } from "socket.io";
-import prisma from "./lib/prisma";
+import { sendMessage } from "./services/chatService";
 
 /* CONFIGURATIONS */
 dotenv.config();
