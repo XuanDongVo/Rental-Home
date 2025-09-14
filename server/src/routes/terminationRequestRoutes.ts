@@ -34,6 +34,13 @@ router.get("/:id/details", getTerminationRequestDetails);
 // Update termination request (managers only)
 router.put("/:id", authMiddleware(["manager"]), updateTerminationRequest);
 
+// Update termination request status (approve/reject)
+router.put(
+  "/:id/status",
+  authMiddleware(["manager"]),
+  updateTerminationRequest
+);
+
 // Delete termination request
 router.delete("/:id", deleteTerminationRequest);
 
