@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { useGetUnreadMessageCountQuery } from '@/state/api';
+import { useGetUnreadMessageCountQuery, useGetAuthUserQuery } from '@/state/api';
 
 export interface UnreadMessageData {
   totalUnread: number;
@@ -19,11 +19,12 @@ export const useUnreadMessages = () => {
     conversations: []
   });
 
-  // This would need to be passed from the parent component
-  const currentUserId = 'current-user-id'; // TODO: Get from auth context
+  // Get current user from auth
+  const { data: authUser } = useGetAuthUserQuery();
+  const currentUserId = authUser?.cognitoInfo?.userId;
 
   const { data: unreadCountData, isLoading, refetch } = useGetUnreadMessageCountQuery(
-    currentUserId,
+    currentUserId || '',
     { skip: !currentUserId }
   );
 

@@ -10,6 +10,7 @@ import ChatMessages from "./ChatMessages";
 import ChatInput from "./ChatInput";
 import { MessageCircle } from "lucide-react";
 import { useUnreadMessages } from "@/hooks/useUnreadMessages";
+import { useHydration } from "@/hooks/useHydration";
 import { 
   useGetChatHistoryQuery, 
   useGetConversationsQuery,
@@ -66,6 +67,7 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
   const { markAsRead } = useUnreadMessages();
   const { data: authUser } = useGetAuthUserQuery();
   const currentUserId = authUser?.cognitoInfo?.userId;
+  const isHydrated = useHydration();
   
   // Chat mutations
   const [sendChatMessage] = useSendChatMessageMutation();
@@ -93,10 +95,7 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
     return Array.isArray(persistedConversations) ? persistedConversations : [];
   }, [persistedConversations]);
   
-  // Debug logging
-  console.log('ChatContainer - persistedConversations:', persistedConversations);
-  console.log('ChatContainer - safePersistedConversations:', safePersistedConversations);
-  console.log('ChatContainer - conversationsError:', conversationsError);
+  // Debug logging removed to prevent hydration issues
 
   // Load messages for selected conversation
   const selectedConv = conversations.find(conv => conv.id === selectedConversation);
@@ -127,7 +126,7 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
       }
 
       const newMessage: Message = {
-        id: data.id?.toString() || Date.now().toString(),
+        id: data.id?.toString() || `msg_${data.senderId}_${data.receiverId}_${Date.now()}`,
         content: data.content,
         timestamp: data.createdAt ? new Date(data.createdAt) : new Date(),
         isFromUser: false,
@@ -216,7 +215,7 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
   useEffect(() => {
     if (conversationsLoading || !safePersistedConversations || safePersistedConversations.length === 0) return;
     
-    console.log('ChatContainer - Processing conversations:', safePersistedConversations);
+    // Processing conversations
     
     setConversations(prev => {
       // Check if conversations are already up to date to prevent unnecessary updates
@@ -227,6 +226,12 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
       
       const newConversations = safePersistedConversations.map((pc: any) => {
         const existing = prev.find(c => c.peerId === pc.peerId);
+        
+        // Calculate unread count based on last message
+        const unreadCount = (pc.lastMessage.senderId !== currentUserId && !pc.lastMessage.isRead) 
+          ? (existing?.unreadCount || 0) + 1 
+          : (existing?.unreadCount || 0);
+        
         return {
           id: pc.peerId,
           peerId: pc.peerId,
@@ -241,7 +246,7 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
             createdAt: pc.lastMessage.createdAt,
             isRead: pc.lastMessage.isRead
           },
-          unreadCount: existing?.unreadCount || 0
+          unreadCount: unreadCount
         };
       }).sort((a, b) => 
         new Date(b.lastMessage.createdAt).getTime() - new Date(a.lastMessage.createdAt).getTime()
@@ -317,7 +322,7 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
 
     // Optimistically update UI first
     const userMessage: Message = {
-      id: Date.now().toString(),
+      id: `msg_${currentUserId}_${currentConv.peerId}_${Date.now()}`,
       content: messageContent,
       timestamp: new Date(),
       isFromUser: true,
@@ -340,7 +345,8 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
               receiverId: currentConv.peerId,
               createdAt: new Date().toISOString(),
               isRead: true
-            }
+            },
+            unreadCount: 0 // Reset unread count when user sends a message
           }
         : conv
     ));
@@ -421,8 +427,20 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
     setSelectedConversation(user.cognitoId);
   };
 
+  // Show loading state until hydrated
+  if (!isHydrated) {
+    return (
+      <div className="h-screen flex bg-gray-50 overflow-hidden items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading chat...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="h-screen flex bg-gray-50 overflow-hidden">
+    <div className="h-screen flex bg-gray-50 overflow-hidden" suppressHydrationWarning={true}>
       {/* Left Sidebar */}
       <ChatSidebar
         conversations={conversations}
