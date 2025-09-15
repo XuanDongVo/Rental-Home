@@ -2,3 +2,10 @@
 node_modules
 .gitignore
 .dockerignore
+
+client/.env.local
+client/.env.development
+client/.env.production
+server/.env
+server/.env.development
+server/.env.production

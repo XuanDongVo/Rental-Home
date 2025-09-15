@@ -166,18 +166,29 @@ export const createTerminationPolicy = async (
       gracePeriodDays = 60,
     } = req.body;
 
+    console.log("Creating policy with data:", JSON.stringify(req.body));
+
     const user = (req as any).user;
+
+    console.log("Authenticated user:", JSON.stringify(user));
 
     if (!propertyId) {
       res.status(400).json({ error: "Property ID is required" });
       return;
     }
 
+    // Safe parsing of propertyId
+    const propertyIdNum = parseInt(propertyId as string);
+    if (isNaN(propertyIdNum)) {
+      res.status(400).json({ error: "Invalid property ID format" });
+      return;
+    }
+
     // Verify property exists and user has access
     const property = await prisma.property.findFirst({
       where: {
-        id: propertyId,
-        managerCognitoId: user.userInfo.cognitoId,
+        id: propertyIdNum,
+        managerCognitoId: user.id as string,
       },
     });
 
@@ -188,7 +199,7 @@ export const createTerminationPolicy = async (
 
     // Get manager ID
     const manager = await prisma.manager.findUnique({
-      where: { cognitoId: user.userInfo.cognitoId },
+      where: { cognitoId: user.id },
     });
 
     if (!manager) {
@@ -196,9 +207,27 @@ export const createTerminationPolicy = async (
       return;
     }
 
+    // Validate rules structure if provided
+    if (rules && Array.isArray(rules)) {
+      const invalidRules = rules.filter(
+        (rule) =>
+          typeof rule.minDaysNotice !== "number" ||
+          typeof rule.maxDaysNotice !== "number" ||
+          typeof rule.penaltyPercentage !== "number"
+      );
+
+      if (invalidRules.length > 0) {
+        res.status(400).json({
+          error:
+            "Invalid rule structure. Each rule must have minDaysNotice, maxDaysNotice, and penaltyPercentage as numbers",
+        });
+        return;
+      }
+    }
+
     // Deactivate existing policies for this property
     await prisma.terminationPolicy.updateMany({
-      where: { propertyId, isActive: true },
+      where: { propertyId: propertyIdNum, isActive: true },
       data: { isActive: false },
     });
 
@@ -214,7 +243,7 @@ export const createTerminationPolicy = async (
 
     const policy = await prisma.terminationPolicy.create({
       data: {
-        propertyId,
+        propertyId: propertyIdNum,
         isActive: true,
         minimumNoticedays: minimumNoticeRequired,
         penaltyRules: policyRules,
