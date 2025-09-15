@@ -4,6 +4,7 @@ import React, { useEffect, useRef } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { useSafeDateFormat } from "@/hooks/useHydration";
 
 interface Message {
   id: string | number;
@@ -47,6 +48,7 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
   onMessageRead
 }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const { formatTime } = useSafeDateFormat();
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -55,10 +57,6 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
-
-  const formatTime = (date: Date) => {
-    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  };
 
   const getInitials = (name: string) => {
     return name
@@ -108,9 +106,7 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
           messages.map((message, index) => {
             const isFirstMessage = index === 0;
             const prevMessage = index > 0 ? messages[index - 1] : null;
-            const showAvatar = !prevMessage || 
-              prevMessage.isFromUser !== message.isFromUser ||
-              (new Date(message.timestamp).getTime() - new Date(prevMessage.timestamp).getTime()) > 300000; // 5 minutes
+            const showAvatar = true; // Always show avatar for better visual consistency
 
             return (
               <div

@@ -1,6 +1,7 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { MessageCircle } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { ChatAuthRequiredProps } from "./types";
 
 const ChatAuthRequired: React.FC<ChatAuthRequiredProps> = ({
@@ -10,11 +11,13 @@ const ChatAuthRequired: React.FC<ChatAuthRequiredProps> = ({
     onSignIn,
     className
 }) => {
+    const router = useRouter();
+    
     const handleSignIn = () => {
         if (onSignIn) {
             onSignIn();
         } else {
-            window.location.href = redirectPath;
+            router.push(redirectPath);
         }
     };
 
