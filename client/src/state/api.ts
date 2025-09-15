@@ -33,6 +33,7 @@ export const api = createApi({
     "Payments",
     "Applications",
     "TerminationPolicies",
+    "TerminationRequests",
   ],
   endpoints: (build) => ({
     getAuthUser: build.query<User, void>({
@@ -806,6 +807,12 @@ export const api = createApi({
     }),
 
     // Termination Policy endpoints
+
+    getManagerTerminationRequests: build.query<any[], {}>({
+      query: () => `termination-requests/manager`,
+      providesTags: ["TerminationRequests"],
+    }),
+
     getTerminationPolicies: build.query<
       any[],
       { propertyId: string; active?: boolean }
@@ -920,6 +927,25 @@ export const api = createApi({
       }),
     }),
 
+    // Update termination request status (approve/reject)
+    updateTerminationRequestStatus: build.mutation<
+      any,
+      { id: string; status: "approved" | "rejected" }
+    >({
+      query: ({ id, status }) => ({
+        url: `termination-requests/${id}/status`,
+        method: "PUT",
+        body: { status },
+      }),
+      invalidatesTags: ["TerminationRequests"],
+      async onQueryStarted(_, { queryFulfilled }) {
+        await withToast(queryFulfilled, {
+          success: "Request status updated successfully!",
+          error: "Failed to submit termination request.",
+        });
+      },
+    }),
+
     // Termination Request endpoints
     submitTerminationRequest: build.mutation<
       any,
@@ -1001,4 +1027,6 @@ export const {
 
   // Termination Request hooks
   useSubmitTerminationRequestMutation,
+  useGetManagerTerminationRequestsQuery,
+  useUpdateTerminationRequestStatusMutation,
 } = api;
