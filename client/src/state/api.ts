@@ -970,6 +970,36 @@ export const api = createApi({
         });
       },
     }),
+
+    getManagerTerminationRequests: build.query<any, void>({
+      query: () => ({
+        url: "termination-requests/manager",
+        method: "GET",
+      }),
+      providesTags: [{ type: "Leases", id: "LIST" }],
+    }),
+
+    updateTerminationRequestStatus: build.mutation<
+      any,
+      {
+        requestId: number;
+        status: 'approved' | 'rejected';
+        managerNotes?: string;
+      }
+    >({
+      query: ({ requestId, status, managerNotes }) => ({
+        url: `termination-requests/${requestId}/status`,
+        method: "PATCH",
+        body: { status, managerNotes },
+      }),
+      invalidatesTags: [{ type: "Leases", id: "LIST" }],
+      async onQueryStarted(_, { queryFulfilled }) {
+        await withToast(queryFulfilled, {
+          success: "Termination request status updated successfully!",
+          error: "Failed to update termination request status.",
+        });
+      },
+    }),
   }),
 });
 

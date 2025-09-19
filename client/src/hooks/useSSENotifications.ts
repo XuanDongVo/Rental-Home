@@ -20,13 +20,15 @@ export const useSSENotifications = () => {
   const [unreadCount, setUnreadCount] = useState(0);
   const [isConnected, setIsConnected] = useState(false);
   const eventSourceRef = useRef<EventSource | null>(null);
+  const pollingRef = useRef<number | null>(null);
+  const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "";
 
   // Connect to SSE stream - simple approach without auth
   useEffect(() => {
     if (!authUser?.cognitoInfo?.userId) return;
 
     // Fetch initial notifications
-    const fetchNotifications = async () => {
+  const fetchNotifications = async () => {
       try {
         // Get ID token for auth (same as api.ts)
         const session = await fetchAuthSession();
@@ -37,28 +39,79 @@ export const useSSENotifications = () => {
           return;
         }
 
-        const response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_BASE_URL}/notifications`,
-          {
-            headers: {
-              Authorization: `Bearer ${idToken}`,
-            },
-          }
-        );
+        if (!navigator.onLine) {
+          console.warn("Offline: skipping notifications fetch");
+          return;
+        }
 
-        if (response.ok) {
-          const data = await response.json();
+        const base = API_BASE ? API_BASE.replace(/\/$/, "") : "";
+        const notificationsPath = "/notifications";
+        const notificationsUrl = base ? `${base}${notificationsPath}` : notificationsPath;
+        const originFallback = window.location.origin + notificationsPath;
+
+        console.debug("Attempting to fetch notifications. idToken present:", !!idToken);
+        console.debug("Primary URL:", notificationsUrl, "Origin fallback:", originFallback);
+
+        const fetchOptions: RequestInit = {
+          headers: {
+            Authorization: `Bearer ${idToken}`,
+          },
+          mode: "cors",
+        };
+
+        const urlsToTry = [notificationsUrl];
+        // If notificationsUrl is relative, also try origin-prefixed absolute URL
+        if (!base) urlsToTry.push(originFallback);
+
+        let lastError: any = null;
+        let data: any = null;
+
+        for (const url of urlsToTry) {
+          try {
+            console.debug("Fetching notifications from:", url);
+            const response = await fetch(url, fetchOptions);
+            if (response.ok) {
+              data = await response.json();
+              break;
+            } else {
+              lastError = new Error(`HTTP ${response.status} ${response.statusText}`);
+              console.warn("Fetch returned non-OK status for", url, response.status, response.statusText);
+            }
+            } catch (err) {
+            lastError = err;
+            console.warn("Fetch attempt failed for", url, err);
+          }
+        }
+
+        if (data) {
           setNotifications(data);
           setUnreadCount(data.filter((n: Notification) => !n.isRead).length);
         } else {
-          //   console.error(
-          //     "Failed to fetch notifications:",
-          //     response.status,
-          //     response.statusText
-          //   );
+          console.warn("Failed to fetch notifications after attempts:", lastError);
+
+          // Diagnostic probe: try a no-cors fetch to detect CORS vs server down
+          (async () => {
+            try {
+              const probeUrl = urlsToTry[0] || originFallback;
+              const ac = new AbortController();
+              const id = setTimeout(() => ac.abort(), 3000);
+              // Attempt a no-cors request — if it resolves, likely CORS issue; if it rejects, server unreachable
+              await fetch(probeUrl, { mode: "no-cors", signal: ac.signal });
+              clearTimeout(id);
+              console.warn("Probe succeeded in no-cors mode — this suggests a CORS issue for:", probeUrl);
+              console.warn(
+                "If you're running the API on localhost, ensure the server sets the Access-Control-Allow-Origin header to your client origin (or '*') and allows Authorization header if needed."
+              );
+            } catch (probeErr) {
+              console.warn("Probe failed — API appears unreachable at:", urlsToTry, probeErr);
+              console.warn(
+                "Check that the API server is running and accessible at the above URL(s). If using Docker, ensure port mapping is correct."
+              );
+            }
+          })();
         }
       } catch (error) {
-        console.error("Failed to fetch initial notifications:", error);
+        console.warn("Failed to fetch initial notifications (unexpected):", error);
       }
     };
 
@@ -75,81 +128,112 @@ export const useSSENotifications = () => {
 
       // Simple connection with just userId, no auth token needed
       const userRole = authUser.userRole?.toLowerCase() || "tenant";
-      const eventSource = new EventSource(
-        `${process.env.NEXT_PUBLIC_API_BASE_URL}/notifications/subscribe?id=${authUser.cognitoInfo.userId}&type=${userRole}`
-      );
+      const subscribeUrl = API_BASE
+        ? `${API_BASE.replace(/\/$/, "")}/notifications/subscribe?id=${encodeURIComponent(
+            authUser.cognitoInfo.userId
+          )}&type=${encodeURIComponent(userRole)}`
+        : `/notifications/subscribe?id=${encodeURIComponent(
+            authUser.cognitoInfo.userId
+          )}&type=${encodeURIComponent(userRole)}`;
 
-      eventSourceRef.current = eventSource;
+      try {
+        const eventSource = new EventSource(subscribeUrl);
+        eventSourceRef.current = eventSource;
 
-      eventSource.onopen = () => {
-        setIsConnected(true);
-        retryCount = 0; // Reset retry count on successful connection
-      };
-
-      eventSource.onerror = (error) => {
-        // console.error("SSE error:", error);
-        setIsConnected(false);
-        eventSource.close();
-
-        // Retry connection with exponential backoff
-        if (retryCount < maxRetries) {
-          retryCount++;
-          setTimeout(() => {
-            if (authUser?.cognitoInfo?.userId) {
-              connectSSE();
-            }
-          }, 2000 * retryCount); // Exponential backoff: 2s, 4s, 6s
-        } else {
+        // If we had a polling fallback running, clear it
+        if (pollingRef.current) {
+          clearInterval(pollingRef.current);
+          pollingRef.current = null;
         }
-      };
 
-      eventSource.addEventListener("notification", (event) => {
-        try {
-          const notification: Notification = JSON.parse(event.data);
+        eventSource.onopen = () => {
+          setIsConnected(true);
+          retryCount = 0; // Reset retry count on successful connection
+        };
 
-          // Add to notifications list (avoid duplicates)
-          setNotifications((prev) => {
-            const isDuplicate = prev.some(
-              (existing) => existing.id === notification.id
-            );
-            if (!isDuplicate) {
-              return [notification, ...prev.slice(0, 49)]; // Keep max 50 notifications
+        eventSource.onerror = (error) => {
+          // console.error("SSE error:", error);
+          setIsConnected(false);
+          eventSource.close();
+
+          // Retry connection with exponential backoff
+          if (retryCount < maxRetries) {
+            retryCount++;
+            setTimeout(() => {
+              if (authUser?.cognitoInfo?.userId) {
+                connectSSE();
+              }
+            }, 2000 * retryCount); // Exponential backoff: 2s, 4s, 6s
+          } else {
+            // If SSE keeps failing, fallback to polling every 30s
+            if (!pollingRef.current) {
+              pollingRef.current = window.setInterval(() => {
+                refreshNotifications();
+              }, 30000);
             }
-            return prev;
-          });
-
-          // Update unread count if notification is unread
-          if (!notification.isRead) {
-            setUnreadCount((prev) => prev + 1);
           }
+        };
 
-          // Show browser notification if permission granted
-          if (Notification.permission === "granted") {
-            new Notification(notification.title, {
-              body: notification.message,
-              icon: "/favicon.ico",
-              tag: notification.id.toString(),
+        eventSource.addEventListener("notification", (event) => {
+          try {
+            const notification: Notification = JSON.parse(event.data);
+
+            // Add to notifications list (avoid duplicates)
+            setNotifications((prev) => {
+              const isDuplicate = prev.some(
+                (existing) => existing.id === notification.id
+              );
+              if (!isDuplicate) {
+                return [notification, ...prev.slice(0, 49)]; // Keep max 50 notifications
+              }
+              return prev;
             });
-          }
-        } catch (e) {
-          console.error(
-            "Error parsing notification JSON:",
-            e,
-            "Raw data:",
-            event.data
-          );
-        }
-      });
 
-      return eventSource;
+            // Update unread count if notification is unread
+            if (!notification.isRead) {
+              setUnreadCount((prev) => prev + 1);
+            }
+
+            // Show browser notification if permission granted
+            if (Notification.permission === "granted") {
+              new Notification(notification.title, {
+                body: notification.message,
+                icon: "/favicon.ico",
+                tag: notification.id.toString(),
+              });
+            }
+          } catch (e) {
+            console.error(
+              "Error parsing notification JSON:",
+              e,
+              "Raw data:",
+              event.data
+            );
+          }
+        });
+      } catch (err) {
+        console.warn("Failed to connect to SSE, falling back to polling:", err);
+        // Fallback to polling every 30s
+        if (!pollingRef.current) {
+          pollingRef.current = window.setInterval(() => {
+            refreshNotifications();
+          }, 30000);
+        }
+      }
+      // end try/catch for connecting SSE
     };
 
     const source = connectSSE();
 
     // Cleanup function
     return () => {
-      if (source) {
-        source.close();
+      if (eventSourceRef.current) {
+        eventSourceRef.current.close();
+        eventSourceRef.current = null;
+      }
+      if (pollingRef.current) {
+        clearInterval(pollingRef.current);
+        pollingRef.current = null;
       }
       setIsConnected(false);
     };

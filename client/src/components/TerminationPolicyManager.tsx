@@ -16,19 +16,23 @@ import {
 } from '@/state/api';
 
 interface TerminationPolicyManagerProps {
-    propertyId: number;
+    propertyId: string | number;
+    managerId?: string | number;
     propertyName?: string;
 }
 
 const TerminationPolicyManager: React.FC<TerminationPolicyManagerProps> = ({
     propertyId,
+    managerId,
     propertyName,
 }) => {
     const authUser = null; // TODO: Replace with actual auth hook
 
     // Redux queries and mutations
+    const propertyIdStr = String(propertyId);
+    const managerIdStr = managerId ? String(managerId) : undefined;
     const { data: policies = [], isLoading, refetch } = useGetTerminationPoliciesQuery({
-        propertyId: propertyId.toString(),
+        propertyId: propertyIdStr,
     });
     const [createPolicy, { isLoading: isCreating }] = useCreateTerminationPolicyMutation();
     const [updatePolicy, { isLoading: isUpdating }] = useUpdateTerminationPolicyMutation();
@@ -111,7 +115,7 @@ const TerminationPolicyManager: React.FC<TerminationPolicyManagerProps> = ({
             } else {
                 // Create new policy
                 await createPolicy({
-                    propertyId: propertyId.toString(),
+                    propertyId: propertyIdStr,
                     ...formData,
                 }).unwrap();
             }

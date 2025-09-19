@@ -167,11 +167,20 @@ export const createTerminationPolicy = async (
       gracePeriodDays = 60,
     } = req.body;
 
+    console.log("Creating policy with data:", JSON.stringify(req.body));
+
     const user = (req as any).user;
     const propertyIdNumber = parseInt(propertyId);
 
     if (!propertyIdNumber) {
       res.status(400).json({ error: "Property ID is required" });
+      return;
+    }
+
+    // Safe parsing of propertyId
+    const propertyIdNum = parseInt(propertyId as string);
+    if (isNaN(propertyIdNum)) {
+      res.status(400).json({ error: "Invalid property ID format" });
       return;
     }
 
@@ -196,6 +205,24 @@ export const createTerminationPolicy = async (
     if (!manager) {
       res.status(404).json({ error: "Manager not found" });
       return;
+    }
+
+    // Validate rules structure if provided
+    if (rules && Array.isArray(rules)) {
+      const invalidRules = rules.filter(
+        (rule) =>
+          typeof rule.minDaysNotice !== "number" ||
+          typeof rule.maxDaysNotice !== "number" ||
+          typeof rule.penaltyPercentage !== "number"
+      );
+
+      if (invalidRules.length > 0) {
+        res.status(400).json({
+          error:
+            "Invalid rule structure. Each rule must have minDaysNotice, maxDaysNotice, and penaltyPercentage as numbers",
+        });
+        return;
+      }
     }
 
     // Deactivate existing policies for this property
