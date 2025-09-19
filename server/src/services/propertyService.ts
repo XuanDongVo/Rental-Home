@@ -18,22 +18,28 @@ const s3Client = new S3Client({
 // Default termination policy rules
 const DEFAULT_POLICY_RULES = [
   {
-    minDaysNotice: 0,
-    maxDaysNotice: 29,
+    minMonthsRemaining: 6,
+    maxMonthsRemaining: 999,
     penaltyPercentage: 100,
-    description: "Less than 30 days notice",
+    description: "Chấm dứt khi còn hơn 6 tháng trong hợp đồng",
   },
   {
-    minDaysNotice: 30,
-    maxDaysNotice: 59,
+    minMonthsRemaining: 3,
+    maxMonthsRemaining: 6,
     penaltyPercentage: 50,
-    description: "30-59 days notice",
+    description: "Chấm dứt khi còn 3-6 tháng trong hợp đồng",
   },
   {
-    minDaysNotice: 60,
-    maxDaysNotice: 999,
+    minMonthsRemaining: 1,
+    maxMonthsRemaining: 3,
+    penaltyPercentage: 25,
+    description: "Chấm dứt khi còn 1-3 tháng trong hợp đồng",
+  },
+  {
+    minMonthsRemaining: 0,
+    maxMonthsRemaining: 1,
     penaltyPercentage: 0,
-    description: "60+ days notice (no penalty)",
+    description: "Chấm dứt khi còn dưới 1 tháng trong hợp đồng (không phạt)",
   },
 ];
 
