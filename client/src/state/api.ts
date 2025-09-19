@@ -916,6 +916,7 @@ export const api = createApi({
       any,
       {
         propertyId: string;
+        leaseId: number;
         requestedEndDate: string;
         monthlyRent: number;
       }

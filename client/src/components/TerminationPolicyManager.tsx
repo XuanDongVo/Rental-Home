@@ -42,9 +42,34 @@ const TerminationPolicyManager: React.FC<TerminationPolicyManagerProps> = ({
     const [formData, setFormData] = useState({
         minimumNoticeRequired: 30,
         rules: [
-            { id: 'default-1', minDaysNotice: 0, maxDaysNotice: 29, penaltyPercentage: 100, description: "Less than 30 days notice" },
-            { id: 'default-2', minDaysNotice: 30, maxDaysNotice: 59, penaltyPercentage: 50, description: "30-59 days notice" },
-            { id: 'default-3', minDaysNotice: 60, maxDaysNotice: 999, penaltyPercentage: 0, description: "60+ days notice (no penalty)" }
+            {
+                id: 'default-1',
+                minMonthsRemaining: 6,
+                maxMonthsRemaining: 999,
+                penaltyPercentage: 100,
+                description: "Chấm dứt khi còn hơn 6 tháng trong hợp đồng"
+            },
+            {
+                id: 'default-2',
+                minMonthsRemaining: 3,
+                maxMonthsRemaining: 6,
+                penaltyPercentage: 50,
+                description: "Chấm dứt khi còn 3-6 tháng trong hợp đồng"
+            },
+            {
+                id: 'default-3',
+                minMonthsRemaining: 1,
+                maxMonthsRemaining: 3,
+                penaltyPercentage: 25,
+                description: "Chấm dứt khi còn 1-3 tháng trong hợp đồng"
+            },
+            {
+                id: 'default-4',
+                minMonthsRemaining: 0,
+                maxMonthsRemaining: 1,
+                penaltyPercentage: 0,
+                description: "Chấm dứt khi còn dưới 1 tháng trong hợp đồng (không phạt)"
+            }
         ] as TerminationPolicyRule[],
         allowEmergencyWaiver: true,
         emergencyCategories: [
@@ -104,8 +129,8 @@ const TerminationPolicyManager: React.FC<TerminationPolicyManagerProps> = ({
                 ...formData.rules,
                 {
                     id: `temp-${Date.now()}`, // Temporary ID for new rules
-                    minDaysNotice: 0,
-                    maxDaysNotice: 0,
+                    minMonthsRemaining: 0,
+                    maxMonthsRemaining: 0,
                     penaltyPercentage: 0,
                     description: ''
                 }
@@ -197,7 +222,7 @@ const TerminationPolicyManager: React.FC<TerminationPolicyManagerProps> = ({
                                             <div>
                                                 <span className="font-medium">{rule.description}</span>
                                                 <div className="text-sm text-muted-foreground">
-                                                    {rule.minDaysNotice}-{rule.maxDaysNotice === 999 ? '∞' : rule.maxDaysNotice} days notice
+                                                    {rule.minMonthsRemaining}-{rule.maxMonthsRemaining === 999 ? '∞' : rule.maxMonthsRemaining} tháng còn lại
                                                 </div>
                                             </div>
                                             <Badge variant={rule.penaltyPercentage === 0 ? "default" : rule.penaltyPercentage >= 50 ? "destructive" : "secondary"}>
@@ -267,19 +292,19 @@ const TerminationPolicyManager: React.FC<TerminationPolicyManagerProps> = ({
                                     {formData.rules.map((rule, index) => (
                                         <div key={index} className="grid grid-cols-12 gap-2 items-end">
                                             <div className="col-span-2">
-                                                <Label className="text-xs">Min Days</Label>
+                                                <Label className="text-xs">Tháng tối thiểu</Label>
                                                 <Input
                                                     type="number"
-                                                    value={rule.minDaysNotice}
-                                                    onChange={(e) => updateRule(index, 'minDaysNotice', parseInt(e.target.value) || 0)}
+                                                    value={rule.minMonthsRemaining}
+                                                    onChange={(e) => updateRule(index, 'minMonthsRemaining', parseInt(e.target.value) || 0)}
                                                 />
                                             </div>
                                             <div className="col-span-2">
-                                                <Label className="text-xs">Max Days</Label>
+                                                <Label className="text-xs">Tháng tối đa</Label>
                                                 <Input
                                                     type="number"
-                                                    value={rule.maxDaysNotice}
-                                                    onChange={(e) => updateRule(index, 'maxDaysNotice', parseInt(e.target.value) || 0)}
+                                                    value={rule.maxMonthsRemaining}
+                                                    onChange={(e) => updateRule(index, 'maxMonthsRemaining', parseInt(e.target.value) || 0)}
                                                 />
                                             </div>
                                             <div className="col-span-2">

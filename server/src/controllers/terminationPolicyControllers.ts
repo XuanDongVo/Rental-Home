@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { PrismaClient } from "@prisma/client";
 import { promises } from "dns";
+import { parse } from "path";
 
 const prisma = new PrismaClient();
 
@@ -167,8 +168,9 @@ export const createTerminationPolicy = async (
     } = req.body;
 
     const user = (req as any).user;
+    const propertyIdNumber = parseInt(propertyId);
 
-    if (!propertyId) {
+    if (!propertyIdNumber) {
       res.status(400).json({ error: "Property ID is required" });
       return;
     }
@@ -176,8 +178,8 @@ export const createTerminationPolicy = async (
     // Verify property exists and user has access
     const property = await prisma.property.findFirst({
       where: {
-        id: propertyId,
-        managerCognitoId: user.userInfo.cognitoId,
+        id: propertyIdNumber,
+        managerCognitoId: user.id as string,
       },
     });
 
@@ -188,7 +190,7 @@ export const createTerminationPolicy = async (
 
     // Get manager ID
     const manager = await prisma.manager.findUnique({
-      where: { cognitoId: user.userInfo.cognitoId },
+      where: { cognitoId: user.id as string },
     });
 
     if (!manager) {
@@ -198,7 +200,7 @@ export const createTerminationPolicy = async (
 
     // Deactivate existing policies for this property
     await prisma.terminationPolicy.updateMany({
-      where: { propertyId, isActive: true },
+      where: { propertyId: propertyIdNumber, isActive: true },
       data: { isActive: false },
     });
 
@@ -214,7 +216,7 @@ export const createTerminationPolicy = async (
 
     const policy = await prisma.terminationPolicy.create({
       data: {
-        propertyId,
+        propertyId: propertyIdNumber,
         isActive: true,
         minimumNoticedays: minimumNoticeRequired,
         penaltyRules: policyRules,
@@ -366,12 +368,23 @@ export const calculateTerminationPenalty = async (
   res: Response
 ): Promise<void> => {
   try {
-    const { propertyId, requestedEndDate, monthlyRent } = req.body;
-
-    if (!propertyId || !requestedEndDate || !monthlyRent) {
+    const { propertyId, requestedEndDate, monthlyRent, leaseId } = req.body;
+    const leaseIdNumber = parseInt(leaseId);
+    if (!propertyId || !requestedEndDate || !monthlyRent || !leaseIdNumber) {
       res.status(400).json({
-        error: "Property ID, requested end date, and monthly rent are required",
+        error:
+          "Property ID, lease ID, requested end date, and monthly rent are required",
       });
+      return;
+    }
+
+    // Lấy thông tin về hợp đồng thuê
+    const lease = await prisma.lease.findUnique({
+      where: { id: leaseIdNumber },
+    });
+
+    if (!lease) {
+      res.status(404).json({ error: "Lease not found" });
       return;
     }
 
@@ -416,9 +429,17 @@ export const calculateTerminationPenalty = async (
       console.log(`Default policy created for property ${propertyId}`);
     }
 
-    // Calculate days notice
-    const today = new Date();
+    // Tính số tháng còn lại trong hợp đồng
     const requestedDate = new Date(requestedEndDate);
+    const leaseEndDate = new Date(lease.endDate);
+
+    // Tính số tháng còn lại từ ngày chấm dứt đến ngày kết thúc hợp đồng
+    const monthsRemaining =
+      (leaseEndDate.getFullYear() - requestedDate.getFullYear()) * 12 +
+      (leaseEndDate.getMonth() - requestedDate.getMonth());
+
+    // Calculate days notice (giữ lại cho mục đích tương thích)
+    const today = new Date();
     const timeDiff = requestedDate.getTime() - today.getTime();
     const daysNotice = Math.ceil(timeDiff / (1000 * 3600 * 24));
 
@@ -434,10 +455,11 @@ export const calculateTerminationPenalty = async (
       );
     }
 
-    // Find applicable rule
+    // Tìm quy tắc áp dụng dựa trên số tháng còn lại
     const applicableRule = rules.find(
       (rule) =>
-        daysNotice >= rule.minDaysNotice && daysNotice <= rule.maxDaysNotice
+        monthsRemaining >= rule.minMonthsRemaining &&
+        monthsRemaining <= rule.maxMonthsRemaining
     );
 
     let penaltyPercentage = 0;
@@ -447,7 +469,7 @@ export const calculateTerminationPenalty = async (
       penaltyPercentage = applicableRule.penaltyPercentage;
       penaltyAmount = (monthlyRent * penaltyPercentage) / 100;
     } else {
-      // No specific rule found, use highest penalty
+      // Không tìm thấy quy tắc, áp dụng mức phạt cao nhất
       const highestPenaltyRule = rules.reduce(
         (max, rule) =>
           rule.penaltyPercentage > max.penaltyPercentage ? rule : max,
@@ -457,15 +479,17 @@ export const calculateTerminationPenalty = async (
       if (highestPenaltyRule.penaltyPercentage > 0) {
         penaltyPercentage = highestPenaltyRule.penaltyPercentage;
         penaltyAmount = (monthlyRent * penaltyPercentage) / 100;
-        warnings.push("No specific rule found. Applying highest penalty rate.");
+        warnings.push(
+          "Không tìm thấy quy tắc cụ thể. Áp dụng mức phạt cao nhất."
+        );
       }
     }
 
-    // Add warnings for high penalties
+    // Thêm cảnh báo cho các khoản phạt cao
     if (penaltyPercentage >= 50) {
       warnings.push(
-        `High penalty rate (${penaltyPercentage}%). ` +
-          `Consider negotiating or extending notice period.`
+        `Mức phạt cao (${penaltyPercentage}%). ` +
+          `Hãy cân nhắc gia hạn thêm thời gian thuê hoặc thương lượng.`
       );
     }
 
@@ -481,9 +505,11 @@ export const calculateTerminationPenalty = async (
         emergencyCategories: (policy.allowWaiverConditions as string[]) || [],
       },
       appliedRule: applicableRule || null,
-      penaltyAmount: Math.round(penaltyAmount * 100) / 100, // Round to 2 decimal places
+      penaltyAmount: Math.round(penaltyAmount * 100) / 100,
       penaltyPercentage,
       daysNotice,
+      monthsRemaining,
+      leaseEndDate: lease.endDate,
       canWaiveForEmergency: policy.allowWaiverConditions ? true : false,
       emergencyCategories: (policy.allowWaiverConditions as string[]) || [],
     };

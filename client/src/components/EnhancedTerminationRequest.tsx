@@ -14,7 +14,7 @@ import TerminationPolicyCalculator from './TerminationPolicyCalculator';
 
 interface EnhancedTerminationRequestProps {
     propertyId: string;
-    leaseId: string;
+    leaseId: number;
     monthlyRent: number;
     onSubmit: (data: TerminationRequestData) => void;
     onCancel: () => void;
@@ -193,6 +193,7 @@ const EnhancedTerminationRequest: React.FC<EnhancedTerminationRequestProps> = ({
                     {formData.requestedEndDate ? (
                         <TerminationPolicyCalculator
                             propertyId={propertyId}
+                            leaseId={leaseId}
                             requestedEndDate={formData.requestedEndDate}
                             monthlyRent={monthlyRent}
                             onPolicyCalculated={handlePolicyCalculated}

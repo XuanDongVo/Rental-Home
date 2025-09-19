@@ -2,7 +2,6 @@
 node_modules
 .gitignore
 .dockerignore
-.dockerignore
 
 client/.env.local
 client/.env.development

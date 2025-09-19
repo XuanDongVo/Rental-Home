@@ -9,6 +9,7 @@ import { useCalculateTerminationPenaltyMutation } from '@/state/api';
 
 interface TerminationPolicyCalculatorProps {
     propertyId: string;
+    leaseId: number;
     requestedEndDate: string;
     monthlyRent: number;
     onPolicyCalculated: (calculation: TerminationCalculation) => void;
@@ -16,6 +17,7 @@ interface TerminationPolicyCalculatorProps {
 
 const TerminationPolicyCalculator: React.FC<TerminationPolicyCalculatorProps> = ({
     propertyId,
+    leaseId,
     requestedEndDate,
     monthlyRent,
     onPolicyCalculated,
@@ -27,6 +29,7 @@ const TerminationPolicyCalculator: React.FC<TerminationPolicyCalculatorProps> = 
         try {
             const result = await calculatePenalty({
                 propertyId,
+                leaseId,
                 requestedEndDate,
                 monthlyRent,
             }).unwrap();
