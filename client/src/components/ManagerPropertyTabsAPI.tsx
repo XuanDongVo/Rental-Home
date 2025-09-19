@@ -12,6 +12,7 @@ import {
     useGetPaymentHistoryByPropertyQuery,
     useGetPreviousTenantsForPropertyQuery,
 } from "@/state/api";
+import { log } from "util";
 
 interface ManagerPropertyTabsAPIProps {
     propertyId: number;
@@ -25,7 +26,8 @@ export default function ManagerPropertyTabsAPI({ propertyId }: ManagerPropertyTa
         error: summaryError,
     } = useGetPropertySummaryQuery(propertyId);
 
-    console.log("Property Summary:", summary);
+    console.log("Property Summary:", summary?.currentLease.tenantCognitoId);
+
 
     const {
         data: leaseHistory = [],
@@ -63,6 +65,13 @@ export default function ManagerPropertyTabsAPI({ propertyId }: ManagerPropertyTa
             </div>
         );
     }
+
+      const handleChatClick = () => {
+
+    //   // Redirect to chat page with property and manager info
+    //   const chatUrl = `/chat?property=${property.id}&manager=${property?.managerCognitoId || 'unknown'}`;
+    //   router.push(chatUrl);
+  };
 
     const getStatusBadge = (status: string) => {
         const statusColors = {

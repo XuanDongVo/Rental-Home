@@ -56,16 +56,6 @@ const ChatContainer: React.FC<ChatContainerProps> = ({
     const { data: authUser } = useGetAuthUserQuery();
     const currentUserId = authUser?.cognitoInfo?.userId;
 
-    console.log('🎯 ChatContainer props:', {
-        propertyId,
-        managerId,
-        autoSelectConversation,
-        initialConversations: initialConversations.length,
-        initialMessages: initialMessages.length
-    });
-
-    // Simple test return to check if component loads
-    console.log('🚀 ChatContainer rendering...');
 
     // Default conversations if none provided
     const defaultConversations: Conversation[] = [
