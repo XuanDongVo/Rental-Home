@@ -675,7 +675,6 @@ export const api = createApi({
       },
     }),
 
-    // Chat: search users (tenants and managers) by name/email
     searchChatUsers: build.query<
       Array<{
         type: string;
@@ -696,27 +695,25 @@ export const api = createApi({
       },
     }),
 
-    // Chat: conversation history between two user ids
+    // Chat: conversation history between two users
     getChatHistory: build.query<
       Array<{
         id: number;
+        chatId: string;
         senderId: string;
-        receiverId: string;
         content: string;
         createdAt: string;
+        updatedAt: string;
         isRead: boolean;
-        sender?: {
-          cognitoId: string;
-          name: string;
-          email: string;
-          userType: string;
-        };
-        receiver?: {
-          cognitoId: string;
-          name: string;
-          email: string;
-          userType: string;
-        };
+        isEdited: boolean;
+        isRecalled: boolean;
+        deletedFor: string[];
+        editHistory?: Array<{
+          id: number;
+          messageId: number;
+          previousContent: string;
+          editedAt: string;
+        }>;
       }>,
       { user1: string; user2: string }
     >({
@@ -732,6 +729,7 @@ export const api = createApi({
     // Chat: recent conversations for a user
     getConversations: build.query<
       Array<{
+        chatId: string;
         peerId: string;
         name: string;
         email: string;
@@ -740,9 +738,10 @@ export const api = createApi({
           id: number;
           content: string;
           senderId: string;
-          receiverId: string;
           createdAt: string;
           isRead: boolean;
+          isEdited: boolean;
+          isRecalled: boolean;
         };
       }>,
       { userId: string }
@@ -768,8 +767,8 @@ export const api = createApi({
     sendChatMessage: build.mutation<
       {
         id: number;
+        chatId: string;
         senderId: string;
-        receiverId: string;
         content: string;
         createdAt: string;
         isRead: boolean;
@@ -781,18 +780,24 @@ export const api = createApi({
         method: "POST",
         body,
       }),
+      transformResponse: (response: { success: boolean; data: any }) => {
+        return response.success ? response.data : null;
+      },
     }),
 
     // Chat: mark messages as read
     markChatMessagesAsRead: build.mutation<
       { updatedCount: number },
-      { senderId: string; receiverId: string }
+      { chatId: string; userId: string }
     >({
       query: (body) => ({
         url: "chat/mark-read",
         method: "POST",
         body,
       }),
+      transformResponse: (response: { success: boolean; data: any }) => {
+        return response.success ? response.data : { updatedCount: 0 };
+      },
     }),
 
     // Chat: get unread message count
@@ -806,12 +811,87 @@ export const api = createApi({
       },
     }),
 
+    // Chat: edit message
+    editChatMessage: build.mutation<
+      {
+        id: number;
+        content: string;
+        isEdited: boolean;
+        updatedAt: string;
+      },
+      { messageId: number; userId: string; content: string }
+    >({
+      query: ({ messageId, userId, content }) => ({
+        url: `chat/messages/${messageId}/edit`,
+        method: "PUT",
+        body: { userId, content },
+      }),
+      transformResponse: (response: { success: boolean; data: any }) => {
+        return response.success ? response.data : null;
+      },
+    }),
+
+    // Chat: recall message (thu hồi tin nhắn)
+    recallChatMessage: build.mutation<
+      {
+        id: number;
+        isRecalled: boolean;
+      },
+      { messageId: number; userId: string }
+    >({
+      query: ({ messageId, userId }) => ({
+        url: `chat/messages/${messageId}/recall`,
+        method: "PUT",
+        body: { userId },
+      }),
+      transformResponse: (response: { success: boolean; data: any }) => {
+        return response.success ? response.data : null;
+      },
+    }),
+
+    // Chat: delete message for current user only
+    deleteChatMessageForMe: build.mutation<
+      {
+        id: number;
+        deletedFor: string[];
+      },
+      { messageId: number; userId: string }
+    >({
+      query: ({ messageId, userId }) => ({
+        url: `chat/messages/${messageId}/delete-for-me`,
+        method: "PUT",
+        body: { userId },
+      }),
+      transformResponse: (response: { success: boolean; data: any }) => {
+        return response.success ? response.data : null;
+      },
+    }),
+
+    // Chat: get message edit history
+    getChatMessageEditHistory: build.query<
+      Array<{
+        id: number;
+        messageId: number;
+        previousContent: string;
+        editedAt: string;
+      }>,
+      { messageId: number; userId: string }
+    >({
+      query: ({ messageId, userId }) =>
+        `chat/messages/${messageId}/edit-history?userId=${encodeURIComponent(
+          userId
+        )}`,
+      transformResponse: (response: { success: boolean; data: any[] }) => {
+        return response.success ? response.data : [];
+      },
+    }),
+
     // Termination Policy endpoints
 
-    getManagerTerminationRequests: build.query<any[], {}>({
-      query: () => `termination-requests/manager`,
-      providesTags: ["TerminationRequests"],
-    }),
+    // getManagerTerminationRequests: build.query<any[], {}>({
+    //   query: () => `termination-requests/manager`,
+    //   providesTags: ["TerminationRequests"],
+    // }),
 
     getTerminationPolicies: build.query<
       any[],
@@ -928,24 +1008,24 @@ export const api = createApi({
       }),
     }),
 
-    // Update termination request status (approve/reject)
-    updateTerminationRequestStatus: build.mutation<
-      any,
-      { id: string; status: "approved" | "rejected" }
-    >({
-      query: ({ id, status }) => ({
-        url: `termination-requests/${id}/status`,
-        method: "PUT",
-        body: { status },
-      }),
-      invalidatesTags: ["TerminationRequests"],
-      async onQueryStarted(_, { queryFulfilled }) {
-        await withToast(queryFulfilled, {
-          success: "Request status updated successfully!",
-          error: "Failed to submit termination request.",
-        });
-      },
-    }),
+    // // Update termination request status (approve/reject)
+    // updateTerminationRequestStatus: build.mutation<
+    //   any,
+    //   { id: string; status: "approved" | "rejected" }
+    // >({
+    //   query: ({ id, status }) => ({
+    //     url: `termination-requests/${id}/status`,
+    //     method: "PUT",
+    //     body: { status },
+    //   }),
+    //   invalidatesTags: ["TerminationRequests"],
+    //   async onQueryStarted(_, { queryFulfilled }) {
+    //     await withToast(queryFulfilled, {
+    //       success: "Request status updated successfully!",
+    //       error: "Failed to submit termination request.",
+    //     });
+    //   },
+    // }),
 
     // Termination Request endpoints
     submitTerminationRequest: build.mutation<
@@ -983,13 +1063,13 @@ export const api = createApi({
       any,
       {
         requestId: number;
-        status: 'approved' | 'rejected';
+        status: "Approved" | "Rejected";
         managerNotes?: string;
       }
     >({
       query: ({ requestId, status, managerNotes }) => ({
         url: `termination-requests/${requestId}/status`,
-        method: "PATCH",
+        method: "PUT",
         body: { status, managerNotes },
       }),
       invalidatesTags: [{ type: "Leases", id: "LIST" }],
@@ -1047,6 +1127,10 @@ export const {
   useSendChatMessageMutation,
   useMarkChatMessagesAsReadMutation,
   useGetUnreadMessageCountQuery,
+  useEditChatMessageMutation,
+  useRecallChatMessageMutation,
+  useDeleteChatMessageForMeMutation,
+  useGetChatMessageEditHistoryQuery,
 
   // Termination Policy hooks
   useGetTerminationPoliciesQuery,

@@ -45,7 +45,7 @@ app.use(
   cors({
     origin: corsOrigin, // Read from environment variable
     credentials: true, // Allow credentials (cookies, auth headers)
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allowedHeaders: ["Content-Type", "Authorization", "Cache-Control"],
   })
 );
@@ -81,36 +81,43 @@ const io = new SocketIOServer(httpServer, {
 });
 
 io.on("connection", (socket: Socket) => {
-  console.log(`User connected: ${socket.id}`);
-
   // client should emit 'join' with their userId (cognitoId)
   socket.on("join", (userId: string) => {
     if (userId) {
       socket.join(userId);
-      console.log(`User ${userId} joined room`);
+      console.log(`User connected and joined room: ${userId}`);
     }
   });
 
-  socket.on("chat:send", async (data: { senderId: string; receiverId: string; content: string }) => {
-    try {
-      console.log(`Message from ${data.senderId} to ${data.receiverId}: ${data.content}`);
-      
-      // Use the chat service to save the message
-      const saved = await sendMessage(data.senderId, data.receiverId, data.content);
-      
-      // Emit to both sender and receiver
-      io.to(data.receiverId).emit("chat:receive", saved);
-      io.to(data.senderId).emit("chat:receive", saved);
-      
-      console.log(`Message sent successfully: ${saved.id}`);
-    } catch (error) {
-      console.error('Error sending message via socket:', error);
-      socket.emit("chat:error", { 
-        message: "Failed to send message",
-        error: error instanceof Error ? error.message : "Unknown error"
-      });
+  socket.on(
+    "chat:send",
+    async (data: { senderId: string; receiverId: string; content: string }) => {
+      try {
+        console.log(
+          `Message from ${data.senderId} to ${data.receiverId}: ${data.content}`
+        );
+
+        // Use the chat service to save the message
+        const saved = await sendMessage(
+          data.senderId,
+          data.receiverId,
+          data.content
+        );
+
+        // Emit to both sender and receiver
+        io.to(data.receiverId).emit("chat:receive", saved);
+        io.to(data.senderId).emit("chat:receive", saved);
+
+        console.log(`Message sent successfully: ${saved.id}`);
+      } catch (error) {
+        console.error("Error sending message via socket:", error);
+        socket.emit("chat:error", {
+          message: "Failed to send message",
+          error: error instanceof Error ? error.message : "Unknown error",
+        });
+      }
     }
-  });
+  );
 
   socket.on("disconnect", () => {
     console.log(`User disconnected: ${socket.id}`);

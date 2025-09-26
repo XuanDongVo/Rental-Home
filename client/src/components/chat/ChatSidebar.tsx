@@ -8,23 +8,24 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useSearchChatUsersQuery } from "@/state/api";
 import { cn } from "@/lib/utils";
+import { Conversation } from "./types";
 
-interface Conversation {
-  id: string;
-  peerId: string;
-  name: string;
-  email: string;
-  type: 'tenant' | 'manager';
-  lastMessage: {
-    id: number;
-    content: string;
-    senderId: string;
-    receiverId: string;
-    createdAt: string;
-    isRead: boolean;
-  };
-  unreadCount?: number;
-}
+// interface Conversation {
+//   id: string;
+//   peerId: string;
+//   name: string;
+//   email: string;
+//   type: 'tenant' | 'manager';
+//   lastMessage: {
+//     id: number;
+//     content: string;
+//     senderId: string;
+//     receiverId: string;
+//     createdAt: string;
+//     isRead: boolean;
+//   };
+//   unreadCount?: number;
+// }
 
 interface ChatSidebarProps {
   conversations: Conversation[];
@@ -155,7 +156,7 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
                       <p className="text-sm font-medium text-gray-900 truncate">
                         {user.name}
                       </p>
-                      <Badge 
+                      <Badge
                         variant={user.type === 'manager' ? 'default' : 'secondary'}
                         className="text-xs"
                       >
@@ -197,7 +198,7 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
                     {getInitials(conversation.name)}
                   </AvatarFallback>
                 </Avatar>
-                
+
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between mb-1">
                     <p className="text-sm font-medium text-gray-900 truncate">
@@ -214,9 +215,9 @@ const ChatSidebar: React.FC<ChatSidebarProps> = ({
                       </span>
                     </div>
                   </div>
-                  
+
                   <div className="flex items-center gap-2">
-                    <Badge 
+                    <Badge
                       variant={conversation.type === 'manager' ? 'default' : 'secondary'}
                       className="text-xs"
                     >

@@ -6,23 +6,24 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { Conversation } from "./types";
 
-interface Conversation {
-  id: string;
-  peerId: string;
-  name: string;
-  email: string;
-  type: 'tenant' | 'manager';
-  lastMessage: {
-    id: number;
-    content: string;
-    senderId: string;
-    receiverId: string;
-    createdAt: string;
-    isRead: boolean;
-  };
-  unreadCount?: number;
-}
+// interface Conversation {
+//   id: string;
+//   peerId: string;
+//   name: string;
+//   email: string;
+//   type: 'tenant' | 'manager';
+//   lastMessage: {
+//     id: number;
+//     content: string;
+//     senderId: string;
+//     receiverId: string;
+//     createdAt: string;
+//     isRead: boolean;
+//   };
+//   unreadCount?: number;
+// }
 
 interface ChatHeaderProps {
   conversation: Conversation;
@@ -66,20 +67,20 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
               <ArrowLeft className="h-4 w-4" />
             </Button>
           )}
-          
+
           <Avatar className="h-10 w-10">
             <AvatarFallback className="text-sm">
               {getInitials(conversation.name)}
             </AvatarFallback>
           </Avatar>
-          
+
           <div className="flex flex-col">
             <div className="flex items-center gap-2">
               <h3 className="font-semibold text-gray-900">
                 {conversation.name}
               </h3>
-              <Badge 
-                variant="secondary" 
+              <Badge
+                variant="secondary"
                 className={cn("text-xs", getStatusColor(conversation.type))}
               >
                 {getStatusText(conversation.type)}
@@ -100,7 +101,7 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
           >
             <Phone className="h-4 w-4" />
           </Button>
-          
+
           <Button
             variant="ghost"
             size="sm"
@@ -109,7 +110,7 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
           >
             <Video className="h-4 w-4" />
           </Button>
-          
+
           <Button
             variant="ghost"
             size="sm"

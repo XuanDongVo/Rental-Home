@@ -344,51 +344,64 @@ export const getTerminationRequest = async (
 };
 
 // Update termination request (manager response)
+// Update termination request (manager response)
 export const updateTerminationRequest = async (
   req: Request,
   res: Response
 ): Promise<void> => {
   try {
     const { id } = req.params;
-    const managerCognitoId = req.user?.id;
     const { status, managerResponse, finalPenaltyFee, approvedEndDate } =
       req.body;
+    const managerCognitoId = req.user?.id;
 
     if (!managerCognitoId) {
       res.status(401).json({ error: "Unauthorized" });
       return;
     }
 
-    // Verify this is the property manager
-    const terminationRequest = await prisma.terminationRequest.findFirst({
-      where: {
-        id: id,
-        lease: {
-          property: {
-            managerCognitoId,
-          },
-        },
-      },
+    console.log("Updating termination request:", status);
+
+    // Verify termination request exists
+    const terminationRequest = await prisma.terminationRequest.findUnique({
+      where: { id },
       include: {
         lease: {
           include: {
-            property: true,
-            tenant: true,
+            property: {
+              include: {
+                manager: true,
+              },
+            },
           },
         },
       },
     });
 
     if (!terminationRequest) {
-      res.status(404).json({
-        error: "Termination request not found or unauthorized",
-      });
+      res.status(404).json({ error: "Termination request not found" });
+      return;
+    }
+
+    // Verify manager has access to this lease
+    if (
+      terminationRequest.lease.property.manager.cognitoId !== managerCognitoId
+    ) {
+      res.status(403).json({ error: "Access denied" });
+      return;
+    }
+
+    // Verify request is not already processed
+    if (terminationRequest.status !== "Pending") {
+      res
+        .status(400)
+        .json({ error: "This termination request has already been processed" });
       return;
     }
 
     // Update the termination request
     const updatedRequest = await prisma.terminationRequest.update({
-      where: { id: id },
+      where: { id },
       data: {
         status,
         managerResponse,
@@ -400,62 +413,51 @@ export const updateTerminationRequest = async (
       },
     });
 
-    // If approved, update the lease
+    // If approved, update the lease status
     if (status === "Approved") {
       await prisma.lease.update({
         where: { id: terminationRequest.leaseId },
         data: {
-          status: "Terminated",
-          terminationDate: updatedRequest.approvedEndDate,
+          status: "PendingTermination",
+          terminationDate: approvedEndDate
+            ? new Date(approvedEndDate)
+            : terminationRequest.requestedEndDate,
           terminationReason: terminationRequest.reason,
         },
       });
 
-      // Create penalty payment if applicable
-      if (
-        updatedRequest.finalPenaltyFee &&
-        updatedRequest.finalPenaltyFee > 0
-      ) {
+      // Create a payment record for the penalty fee if applicable
+      if (finalPenaltyFee && finalPenaltyFee > 0) {
         await prisma.payment.create({
           data: {
-            amountDue: updatedRequest.finalPenaltyFee,
-            dueDate: updatedRequest.approvedEndDate || new Date(),
-            description: "Early termination penalty fee",
             leaseId: terminationRequest.leaseId,
+            amountDue: finalPenaltyFee,
+            dueDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000), // Due in 14 days
+            description: "Early termination penalty fee",
+            paymentStatus: "Pending",
           },
         });
       }
     }
 
     // Send notification to tenant
-    const message =
-      status === "Approved"
-        ? `Your lease termination request for ${terminationRequest.lease.property.name} has been approved.`
-        : `Your lease termination request for ${terminationRequest.lease.property.name} has been rejected.`;
+    const tenantNotificationType =
+      status === "Approved" ? "TerminationApproved" : "TerminationRejected";
 
     await notificationService.createNotification({
       type: "TerminationResponse",
       title: `Termination Request ${status}`,
-      message,
-      data: {
-        terminationRequestId: terminationRequest.id,
-        propertyId: terminationRequest.lease.propertyId,
-        status,
-        finalPenaltyFee: updatedRequest.finalPenaltyFee,
-      },
-      tenantCognitoId: terminationRequest.tenantCognitoId || undefined,
+      message: `Your termination request has been ${status.toLowerCase()}${
+        managerResponse ? `. Manager's response: ${managerResponse}` : ""
+      }`,
+      data: { terminationRequestId: id },
+      tenantCognitoId: terminationRequest.lease.tenantCognitoId,
     });
 
-    res.json({
-      message: "Termination request updated successfully",
-      terminationRequest: updatedRequest,
-    });
+    res.json(updatedRequest);
   } catch (error: any) {
     console.error("Error updating termination request:", error);
-    res.status(500).json({
-      error: "Failed to update termination request",
-      details: error.message,
-    });
+    res.status(500).json({ error: error.message || "Internal server error" });
   }
 };
 

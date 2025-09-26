@@ -36,7 +36,7 @@ const TerminationRequests = () => {
         try {
             await updateRequestStatus({
                 requestId: requestId,
-                status: "approved"
+                status: "Approved"
             }).unwrap();
         } catch (error) {
             console.error("Failed to approve request:", error);
@@ -47,7 +47,7 @@ const TerminationRequests = () => {
         try {
             await updateRequestStatus({
                 requestId: requestId,
-                status: "rejected"
+                status: "Rejected"
             }).unwrap();
         } catch (error) {
             console.error("Failed to reject request:", error);
@@ -143,7 +143,7 @@ const TerminationRequests = () => {
 
     const getStatusColor = (status: string) => {
         switch (status) {
-            case "pending":
+            case "ending":
                 return "bg-yellow-100 text-yellow-800 border-yellow-300";
             case "approved":
                 return "bg-green-100 text-green-800 border-green-300";

@@ -5,6 +5,9 @@ import { MessageCircle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useUnreadMessages } from '@/hooks/useUnreadMessages';
 import { cn } from '@/lib/utils';
+import { useGetUnreadMessageCountQuery } from '@/state/api';
+import { useGetAuthUserQuery } from '@/state/api';
+
 
 interface MessageIconProps {
   className?: string;
@@ -17,7 +20,12 @@ const MessageIcon: React.FC<MessageIconProps> = ({
   showBadge = true,
   onClick
 }) => {
-  const { totalUnread, isLoading } = useUnreadMessages();
+  // const { totalUnread, isLoading } = useUnreadMessages();
+
+  const { data: authUser, isLoading: authLoading } = useGetAuthUserQuery();
+  console.log("Auth User in MessageIcon:", authUser);
+  const { data: totalUnread, isLoading } = useGetUnreadMessageCountQuery(authUser?.cognitoInfo.userId as string);
+  console.log("Total Unread in MessageIcon:", totalUnread);
   const router = useRouter();
 
   const handleClick = () => {
@@ -46,13 +54,13 @@ const MessageIcon: React.FC<MessageIconProps> = ({
       >
         <MessageCircle className="h-6 w-6 text-gray-600" />
       </button>
-      
-      {showBadge && totalUnread > 0 && (
+
+      {showBadge && typeof totalUnread?.unreadCount === 'number' && totalUnread.unreadCount > 0 && (
         <div className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-medium">
-          {formatUnreadCount(totalUnread)}
+          {formatUnreadCount(totalUnread.unreadCount)}
         </div>
       )}
-      
+
       {isLoading && (
         <div className="absolute -top-1 -right-1 bg-gray-400 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
           <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></div>

@@ -1,33 +1,45 @@
 export interface Conversation {
   id: string;
+  chatId: string; // Thêm trường chatId
   peerId: string;
   name: string;
   email: string;
-  type: 'tenant' | 'manager';
+  type: "tenant" | "manager";
   lastMessage: {
     id: number;
     content: string;
     senderId: string;
-    receiverId: string;
     createdAt: string;
     isRead: boolean;
+    isEdited: boolean; // Thêm trạng thái đã chỉnh sửa
+    isRecalled: boolean; // Thêm trạng thái đã thu hồi
   };
   unreadCount?: number;
 }
 
 export interface Message {
   id: string | number;
+  chatId: string; // Thêm trường chatId
   content: string;
   timestamp: Date;
   isFromUser: boolean;
-  status?: 'sent' | 'delivered' | 'read';
+  status?: "sent" | "delivered" | "read" | "edited" | "recalled"; // Thêm trạng thái mới
   isRead?: boolean;
+  isEdited?: boolean; // Thêm trạng thái đã chỉnh sửa
+  isRecalled?: boolean; // Thêm trạng thái đã thu hồi
   senderId?: string;
-  receiverId?: string;
+  editHistory?: MessageEdit[]; // Lịch sử chỉnh sửa
+}
+
+export interface MessageEdit {
+  id: number;
+  messageId: number;
+  previousContent: string;
+  editedAt: string;
 }
 
 export interface ChatUser {
-  type: 'tenant' | 'manager';
+  type: "tenant" | "manager";
   id: number;
   name: string;
   email: string;
@@ -57,6 +69,7 @@ export interface ChatSidebarProps {
   selectedConversation: string | null;
   searchQuery: string;
   onSelectConversation: (id: string) => void;
+  onUserSelect: (user: any) => void;
   onSearchChange: (query: string) => void;
   currentUserId?: string;
 }
@@ -71,7 +84,12 @@ export interface ChatMessagesProps {
   messages: Message[];
   conversation: Conversation;
   isTyping?: boolean;
+  currentUserId?: string;
   onMessageRead?: (messageId: string | number) => void;
+  onRecallMessage?: (messageId: string | number) => void;
+  onEditMessage?: (messageId: string | number, newContent: string) => void;
+  onDeleteMessageForMe?: (messageId: string | number) => void;
+  onViewEditHistory?: (messageId: string | number) => void;
 }
 
 export interface ChatInputProps {
@@ -94,3 +112,12 @@ export interface ChatLoadingSpinnerProps {
   message?: string;
   className?: string;
 }
+
+// export interface MessageActionsProps {
+//   message: Message;
+//   isFromUser: boolean;
+//   onRecall: () => void;
+//   onEdit: () => void;
+//   onDelete: () => void;
+//   onViewHistory: () => void;
+// }

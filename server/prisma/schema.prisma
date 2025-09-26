@@ -303,16 +303,63 @@ model NotificationPreference {
   messageNotifications     Boolean @default(true)
 }
 
-model Message {
-  id         Int      @id @default(autoincrement())
-  senderId   String   // cognitoId of sender
-  receiverId String   // cognitoId of receiver
-  content    String
-  isRead     Boolean  @default(false)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+enum MessageStatus {
+  Sent
+  Delivered
+  Read
+  Edited
+  Recalled
+}
 
+model Chat {
+  id            String   @id @default(cuid())
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  lastMessageAt DateTime @default(now())
+
+  participant1Id String
+  participant2Id String
+
+  // Quan hệ
+  messages Message[]
+
+  @@unique([participant1Id, participant2Id])
+  @@index([participant1Id])
+  @@index([participant2Id])
+  @@index([lastMessageAt])
+}
+
+model Message {
+  id        Int           @id @default(autoincrement())
+  chatId    String // ID của hội thoại
+  senderId  String // cognitoId của người gửi
+  content   String
+  status    MessageStatus @default(Sent)
+  isRead    Boolean       @default(false)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  isEdited Boolean @default(false)
+
+  // Danh sách người dùng đã xóa tin nhắn này (chỉ xóa cho bản thân)
+  deletedFor String[] // Mảng cognitoIds của những người đã xóa tin nhắn này ở phía họ
+
+  isRecalled Boolean @default(false)
+
+  // Quan hệ
+  chat        Chat          @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  editHistory MessageEdit[]
+
+  @@index([chatId])
   @@index([senderId])
-  @@index([receiverId])
   @@index([createdAt])
+}
+
+model MessageEdit {
+  id              Int      @id @default(autoincrement())
+  messageId       Int
+  previousContent String
+  editedAt        DateTime @default(now())
+
+  message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
 }

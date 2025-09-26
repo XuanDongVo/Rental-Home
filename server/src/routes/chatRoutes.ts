@@ -1,35 +1,51 @@
-import express from 'express';
-import { 
-  sendMessage, 
-  getChatHistory, 
-  searchUsers, 
-  getConversations, 
+import express from "express";
+import {
+  sendMessage,
+  getChatHistory,
+  searchUsers,
+  getConversations,
   getUserById,
   markMessagesAsRead,
-  getUnreadMessageCount
-} from '../controllers/chatController';
+  getUnreadMessageCount,
+  editMessage,
+  recallMessage,
+  deleteMessageForMe,
+  getMessageEditHistory,
+} from "../controllers/chatController";
 
 const router = express.Router();
 
-// Send a message
-router.post('/send', sendMessage);
+// Gửi tin nhắn
+router.post("/send", sendMessage);
 
-// Get chat history between two users
-router.get('/history', getChatHistory);
+// Lấy lịch sử chat giữa hai người dùng
+router.get("/history", getChatHistory);
 
-// Search for users (tenants and managers)
-router.get('/users', searchUsers);
+// Tìm kiếm người dùng (tenant và manager)
+router.get("/users", searchUsers);
 
-// Get conversations for a user
-router.get('/conversations/:userId', getConversations);
+// Lấy danh sách cuộc hội thoại của người dùng
+router.get("/conversations/:userId", getConversations);
 
-// Get user by cognito ID
-router.get('/user/:cognitoId', getUserById);
+// Lấy thông tin người dùng theo cognito ID
+router.get("/user/:cognitoId", getUserById);
 
-// Mark messages as read
-router.post('/mark-read', markMessagesAsRead);
+// Đánh dấu tin nhắn đã đọc
+router.post("/mark-read", markMessagesAsRead);
 
-// Get unread message count for a user
-router.get('/unread-count/:userId', getUnreadMessageCount);
+// Lấy số tin nhắn chưa đọc của người dùng
+router.get("/unread-count/:userId", getUnreadMessageCount);
+
+// Chỉnh sửa tin nhắn (chỉ người gửi mới có quyền chỉnh sửa)
+router.put("/messages/:messageId/edit", editMessage);
+
+// Thu hồi tin nhắn (chỉ người gửi mới có quyền thu hồi)
+router.put("/messages/:messageId/recall", recallMessage);
+
+// Xóa tin nhắn cho người dùng hiện tại (không ảnh hưởng đến người khác)
+router.put("/messages/:messageId/delete-for-me", deleteMessageForMe);
+
+// Lấy lịch sử chỉnh sửa của tin nhắn
+router.get("/messages/:messageId/edit-history", getMessageEditHistory);
 
 export default router;
