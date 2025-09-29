@@ -1,6 +1,6 @@
 services:
   database:
-    image: postgis/postgis:15-3.5-alpine
+    image: xundon/rental-db:latest
     container_name: database
     env_file:
       - ./server/.env.production
@@ -18,9 +18,7 @@ services:
     restart: unless-stopped
 
   server:
-    build: 
-      context: ./server
-      dockerfile: Dockerfile
+    image: xundon/rental-server:latest
     container_name: rental-server
     env_file:
       - ./server/.env.production
@@ -41,9 +39,7 @@ services:
     restart: unless-stopped
 
   client:
-    build: 
-      context: ./client
-      dockerfile: Dockerfile
+    image: xundon/rental-client:latest
     container_name: rental-client
     env_file:
       - ./client/.env.production

@@ -74,7 +74,7 @@ export default function TerminationRequestPage() {
             <main className="container mx-auto px-4 py-8">
                 <EnhancedTerminationRequest
                     propertyId={propertyId}
-                    leaseId={leaseId}
+                    leaseId={parseInt(leaseId)}
                     monthlyRent={parseInt(monthlyRent)}
                     onSubmit={handleSubmitRequest}
                     onCancel={handleCancel}
